@@ -40,8 +40,8 @@
          /* Hyperlapse */
 
          var hyperlapse = new Hyperlapse(document.getElementById('pano'), map, {
-            start: start_point, 
-            end: end_point,
+            start: {point:start_point, heading:-35, pitch:-10}, 
+            end: {point:end_point, heading:-10, pitch:-10},
             distance: 10
          });
          
@@ -59,7 +59,7 @@
          }});
 
          hyperlapse.addListener({'onFrame': function(e){
-            console.log(e.position +" "+ e.heading +" "+ e.pitch +" "+ e.point);
+            //console.log(e.position +" "+ e.heading +" "+ e.pitch +" "+ e.point);
             pin.setPosition(e.point);
          }});
 

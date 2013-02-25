@@ -16,6 +16,22 @@ Number.prototype.toDeg = function() {
    return this * 180 / Math.PI;
 }
 
+EasingFunctions = {
+   linear: function(t) { return t },
+   easeInQuad: function(t) { return t * t },
+   easeOutQuad: function(t) { return t * (2 - t) },
+   easeInOutQuad: function(t) { return t < .5 ? 2 * t * t : -1 + (4 - 2 * t) * t },
+   easeInCubic: function(t) { return t * t * t },
+   easeOutCubic: function(t) { return (--t) * t * t + 1 },
+   easeInOutCubic: function(t) { return t < .5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1 },
+   easeInQuart: function(t) { return t * t * t * t },
+   easeOutQuart: function(t) { return 1 - (--t) * t * t * t },
+   easeInOutQuart: function(t) { return t < .5 ? 8 * t * t * t * t : 1 - 8 * (--t) * t * t * t },
+   easeInQuint: function(t) { return t * t * t * t * t },
+   easeOutQuint: function(t) { return 1 + (--t) * t * t * t * t },
+   easeInOutQuint: function(t) { return t < .5 ? 16 * t * t * t * t * t : 1 + 16 * (--t) * t * t * t * t }
+}
+
 var pointOnLine = function(t, a, b) {
    var lat1 = a.lat().toRad(), lon1 = a.lng().toRad();
    var lat2 = b.lat().toRad(), lon2 = b.lng().toRad();
@@ -38,8 +54,6 @@ var Hyperlapse = function(container, map, params) {
       _d = _params.distance || 20,
       _fov = _params.fov || 70,
       _zoom = _params.zoom || 1,
-      _start = _params.start || null,
-      _end = _params.end || null,
       _millis = _params.interval || 50,
       _directions_service,
       _lat = 0, _lon = 0,
@@ -47,12 +61,16 @@ var Hyperlapse = function(container, map, params) {
       _is_running = false,
       _points = [], _headings = [], _pitchs = [], _mats = [],
       _point_index = 0, 
-      _current_heading = 0, _current_pitch = 0,
+      _origin_heading = 0, _origin_pitch = 0,
       _forward = true,
       _interval = null,
+      _tween = null,
       _canvas, _context,
       _camera, _scene, _renderer, _mesh,
       _loader;
+
+   this.start = _params.start || null;
+   this.end = _params.end || null;
 
    this.isRunning = function() { return _is_running; };
    this.length = function() { return _points.length; };
@@ -138,14 +156,6 @@ var Hyperlapse = function(container, map, params) {
       }
    };
 
-   this.setStart = function(val) {
-      _start = val;
-   };
-
-   this.setEnd = function(val) {
-      _end = val;
-   };
-
    this.setSize = function(width, height) {
       _w = width;
       _h = height;
@@ -166,20 +176,20 @@ var Hyperlapse = function(container, map, params) {
       _position_y = 0;
 
       _point_index = 0;
-      _current_heading = 0;
-      _current_pitch = 0;
+      _origin_heading = 0;
+      _origin_pitch = 0;
 
       _forward = true;
    };
 
    this.generate = function() {
-      if(_start==null || _end==null) return;
+      if(!self.start.point || !self.end.point) return;
 
       if(!_is_running) {
          var route = { label:'Hyperlapse',
             request:{
-               origin: _start, 
-               destination: _end, 
+               origin: self.start.point, 
+               destination: self.end.point, 
                travelMode: google.maps.DirectionsTravelMode.DRIVING},
             rendering:{draggable:false}
          };
@@ -227,14 +237,23 @@ var Hyperlapse = function(container, map, params) {
 
    this.animate = function() {
       requestAnimationFrame( self.animate );
+      TWEEN.update();
       self.render();
    };
 
    this.render = function() {
-      var lookat = 180-(_current_heading.toDeg());
-      lookat += _position_x;
+      var t = _point_index/(self.length()-1);
 
-      var p = -(_current_pitch.toDeg());
+      // TODO: Add some easing, something like this
+      //t = (_forward) ? EasingFunctions.linear( t ) : EasingFunctions.easeInCubic( t ) ;
+
+      _position_x = self.start.heading + ((self.end.heading - self.start.heading) * t);
+      _position_y = self.start.pitch + ((self.end.pitch - self.start.pitch) * t);
+
+      var lookat = 180-(_origin_heading.toDeg());
+      lookat += _position_x;
+      
+      var p = -(_origin_pitch.toDeg());
       p += _position_y;
 
       var olon = _lon, olat = _lat;
@@ -266,13 +285,13 @@ var Hyperlapse = function(container, map, params) {
    this.loop = function () {
       _mesh.material.map = _mats[_point_index]; 
       _mesh.material.map.needsUpdate = true;
-      _current_heading = _headings[_point_index];
-      _current_pitch = _pitchs[_point_index];
+      _origin_heading = _headings[_point_index];
+      _origin_pitch = _pitchs[_point_index];
 
       self.broadcastMessage('onFrame',{
          position:_point_index, 
-         heading: _current_heading, 
-         pitch: _current_pitch, 
+         heading: _origin_heading, 
+         pitch: _origin_pitch, 
          point: _points[_point_index]
       });
 
