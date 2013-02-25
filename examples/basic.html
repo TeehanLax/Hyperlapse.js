@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html> 
+<head> 
+   <meta http-equiv="content-type" content="text/html; charset=UTF-8"/> 
+   <title>Basic</title> 
+
+   <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false" type="text/javascript"></script> 
+   <script src="js/GSVPano.js"></script>
+   <script type="text/javascript" src="../src/Hyperlapse.js"></script>
+   <script type="text/javascript" src="js/Three.js"></script>
+   <script type="text/javascript" src="js/RequestAnimationFrame.js"></script>
+   <script type="text/javascript"> 
+   
+      var start_point = new google.maps.LatLng(44.3431,6.783936);
+      var end_point = new google.maps.LatLng(44.340578,6.782684);
+      var map, pin, directions_renderer;
+
+      function init() {
+
+         /* Map */
+
+         var mapOpt = { 
+            mapTypeId: google.maps.MapTypeId.ROADMAP,
+            center: start_point,
+            zoom: 16
+         };
+
+         map = new google.maps.Map(document.getElementById("map"), mapOpt);
+
+         directions_renderer = new google.maps.DirectionsRenderer({draggable:true, polylineOptions:{geodesic: false}});
+         directions_renderer.setMap(map);
+         directions_renderer.setOptions({preserveViewport:true});
+
+         pin = new google.maps.Marker({
+            position: start_point,
+            map: map
+         });
+
+
+         /* Hyperlapse */
+
+         var hyperlapse = new Hyperlapse(document.getElementById('pano'), map, {
+            start: start_point, 
+            end: end_point,
+            distance: 10
+         });
+         
+         hyperlapse.addListener({'onRoute': function(e){
+            console.log(e.response);
+            directions_renderer.setDirections(e.response);
+         }});
+
+         hyperlapse.addListener({'onLoadProgress': function(e){
+            console.log(e.position +" "+ hyperlapse.length());
+         }});
+
+         hyperlapse.addListener({'onLoadComplete': function(e){
+            console.log("load complete");
+         }});
+
+         hyperlapse.addListener({'onFrame': function(e){
+            console.log(e.position +" "+ e.heading +" "+ e.pitch +" "+ e.point);
+            pin.setPosition(e.point);
+         }});
+
+         hyperlapse.generate();
+      }
+
+      window.onload = init;
+   </script> 
+</head> 
+<body> 
+   <div id="pano" ></div>
+   <div id="map" style="width: 600px; height: 400px"></div>
+</body> 
+</html>
