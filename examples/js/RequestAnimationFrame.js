@@ -9,7 +9,7 @@ if ( !window.requestAnimationFrame ) {
 
 		return window.webkitRequestAnimationFrame ||
 		window.mozRequestAnimationFrame ||
-		window.oRequestAnimationFrame ||
+		window.oRequestAnimationFrame || 
 		window.msRequestAnimationFrame ||
 		function( /* function FrameRequestCallback */ callback, /* DOMElement Element */ element ) {
 
