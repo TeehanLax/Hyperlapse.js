@@ -238,8 +238,8 @@ var Hyperlapse = function(container, map, params) {
       p += _position_y;
 
       var olon = _lon, olat = _lat;
-      self.lon = _lon + ( lookat - olon );
-      self.lat = _lat + ( p - olat );
+      _lon = _lon + ( lookat - olon );
+      _lat = _lat + ( p - olat );
 
       _lat = Math.max( - 85, Math.min( 85, _lat ) );
       var phi = ( 90 - _lat ).toRad();
