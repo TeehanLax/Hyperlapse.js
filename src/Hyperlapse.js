@@ -138,6 +138,14 @@ var Hyperlapse = function(container, map, params) {
       }
    };
 
+   this.setStart = function(val) {
+      _start = val;
+   };
+
+   this.setEnd = function(val) {
+      _end = val;
+   };
+
    this.setSize = function(width, height) {
       _w = width;
       _h = height;
