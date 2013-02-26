@@ -28,6 +28,22 @@ var pointOnLine = function(t, a, b) {
 
 var Hyperlapse = function(container, map, params) {
 
+   /* private methods */
+
+   var getElevation = function(locations, callback) {
+      var positionalRequest = {
+         locations: locations
+      }
+
+     _elevator.getElevationForLocations(positionalRequest, function(results, status) {
+         if (status == google.maps.ElevationStatus.OK) {
+            callback(results);
+         } else {
+            callback(null);
+         }
+      });
+   }
+
    var self = this,
       _listeners = [],
       _container = container,
@@ -40,22 +56,25 @@ var Hyperlapse = function(container, map, params) {
       _zoom = _params.zoom || 1,
       _millis = _params.interval || 50,
       _directions_service,
+      _elevator,
       _lat = 0, _lon = 0,
       _position_x = 0, _position_y = 0,
       _is_running = false,
-      _points = [], _headings = [], _pitchs = [], _mats = [],
       _point_index = 0, 
       _origin_heading = 0, _origin_pitch = 0,
       _forward = true,
-      _lookat_heading = 0,
+      _lookat_heading = 0, _lookat_elevation = 0,
       _interval = null,
       _canvas, _context,
       _camera, _scene, _renderer, _mesh,
-      _loader;
+      _loader,
+      _points = [], _headings = [], _pitchs = [], _mats = [], _elevations = [];
 
    this.start = _params.start || null;
    this.end = _params.end || null;
    this.lookat = _params.lookat || null;
+   this.elevation_offset = 0;
+   this.tilt = 0;
 
    this.isRunning = function() { return _is_running; };
    this.length = function() { return _points.length; };
@@ -92,6 +111,7 @@ var Hyperlapse = function(container, map, params) {
    };
    
    _directions_service = new google.maps.DirectionsService();
+   _elevator = new google.maps.ElevationService();
 
    _canvas = document.createElement( 'canvas' );
    _context = _canvas.getContext( '2d' );
@@ -130,6 +150,7 @@ var Hyperlapse = function(container, map, params) {
       _headings.push(this.rotation);
       _pitchs.push(this.pitch);
       _mats.push(mat);
+      _elevations.push(_points[_point_index]);
 
       if(++_point_index != _points.length) {
          self.broadcastMessage('onLoadProgress',{position:_point_index});
@@ -137,10 +158,24 @@ var Hyperlapse = function(container, map, params) {
       } else {
          self.broadcastMessage('onLoadComplete',{});
          _point_index = 0;
-         self.animate();  
-         self.play();
+
+         getElevation(_elevations, function(results){
+            _elevations = results;
+
+            self.animate();  
+            self.play();
+         });
       }
    };
+
+   // TODO: make this the standard setter
+   this.setLookat = function(point) {
+      self.lookat = point;
+      var e = getElevation([self.lookat], function(results){
+         _lookat_elevation = results[0].elevation;
+      });
+   };
+   this.setLookat(self.lookat);
 
    this.setSize = function(width, height) {
       _w = width;
@@ -167,6 +202,8 @@ var Hyperlapse = function(container, map, params) {
 
       _forward = true;
    };
+
+   
 
    this.generate = function() {
       if(!self.start==null || !self.end==null) return;
@@ -233,7 +270,7 @@ var Hyperlapse = function(container, map, params) {
       o_heading += _lookat_heading;
       
       var o_pitch = -(_origin_pitch.toDeg());
-      o_pitch += _position_y;
+      o_pitch = _position_y;
 
       var olon = _lon, olat = _lat;
       _lon = _lon + ( o_heading - olon );
@@ -247,6 +284,7 @@ var Hyperlapse = function(container, map, params) {
       _camera.target.y = 500 * Math.cos( phi );
       _camera.target.z = 500 * Math.sin( phi ) * Math.sin( theta );
       _camera.lookAt( _camera.target );
+      _camera.rotation.z -= _origin_pitch - self.tilt;
       
       _renderer.render( _scene, _camera );
    };
@@ -268,6 +306,12 @@ var Hyperlapse = function(container, map, params) {
       _origin_pitch = _pitchs[_point_index];
       _lookat_heading = google.maps.geometry.spherical.computeHeading(_points[_point_index], self.lookat);
 
+      var e = _elevations[_point_index].elevation - self.elevation_offset;
+      var d = google.maps.geometry.spherical.computeDistanceBetween(_points[_point_index], self.lookat);
+      var dif = _lookat_elevation - e;
+      var angle = Math.atan( Math.abs(dif)/d ).toDeg();
+      _position_y = (dif<0) ? -angle : angle;
+
       self.broadcastMessage('onFrame',{
          position:_point_index, 
          heading: _origin_heading, 
@@ -287,5 +331,8 @@ var Hyperlapse = function(container, map, params) {
          } 
       }
    };
+
+
+   
 
 }
