@@ -16,22 +16,6 @@ Number.prototype.toDeg = function() {
    return this * 180 / Math.PI;
 }
 
-EasingFunctions = {
-   linear: function(t) { return t },
-   easeInQuad: function(t) { return t * t },
-   easeOutQuad: function(t) { return t * (2 - t) },
-   easeInOutQuad: function(t) { return t < .5 ? 2 * t * t : -1 + (4 - 2 * t) * t },
-   easeInCubic: function(t) { return t * t * t },
-   easeOutCubic: function(t) { return (--t) * t * t + 1 },
-   easeInOutCubic: function(t) { return t < .5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1 },
-   easeInQuart: function(t) { return t * t * t * t },
-   easeOutQuart: function(t) { return 1 - (--t) * t * t * t },
-   easeInOutQuart: function(t) { return t < .5 ? 8 * t * t * t * t : 1 - 8 * (--t) * t * t * t },
-   easeInQuint: function(t) { return t * t * t * t * t },
-   easeOutQuint: function(t) { return 1 + (--t) * t * t * t * t },
-   easeInOutQuint: function(t) { return t < .5 ? 16 * t * t * t * t * t : 1 + 16 * (--t) * t * t * t * t }
-}
-
 var pointOnLine = function(t, a, b) {
    var lat1 = a.lat().toRad(), lon1 = a.lng().toRad();
    var lat2 = b.lat().toRad(), lon2 = b.lng().toRad();
@@ -40,7 +24,7 @@ var pointOnLine = function(t, a, b) {
    y = lon1 + t * (lon2 - lon1);
 
    return new google.maps.LatLng(x.toDeg(), y.toDeg());
-}
+};
 
 var Hyperlapse = function(container, map, params) {
 
@@ -63,17 +47,19 @@ var Hyperlapse = function(container, map, params) {
       _point_index = 0, 
       _origin_heading = 0, _origin_pitch = 0,
       _forward = true,
+      _lookat_heading = 0,
       _interval = null,
-      _tween = null,
       _canvas, _context,
       _camera, _scene, _renderer, _mesh,
       _loader;
 
    this.start = _params.start || null;
    this.end = _params.end || null;
+   this.lookat = _params.lookat || null;
 
    this.isRunning = function() { return _is_running; };
    this.length = function() { return _points.length; };
+   this.setPitch = function(val) { _position_y = val };
 
    this.addListener = function(o){
       self.removeListener (o);
@@ -183,13 +169,13 @@ var Hyperlapse = function(container, map, params) {
    };
 
    this.generate = function() {
-      if(!self.start.point || !self.end.point) return;
+      if(!self.start==null || !self.end==null) return;
 
       if(!_is_running) {
          var route = { label:'Hyperlapse',
             request:{
-               origin: self.start.point, 
-               destination: self.end.point, 
+               origin: self.start, 
+               destination: self.end, 
                travelMode: google.maps.DirectionsTravelMode.DRIVING},
             rendering:{draggable:false}
          };
@@ -237,28 +223,21 @@ var Hyperlapse = function(container, map, params) {
 
    this.animate = function() {
       requestAnimationFrame( self.animate );
-      TWEEN.update();
       self.render();
    };
 
    this.render = function() {
       var t = _point_index/(self.length()-1);
 
-      // TODO: Add some easing, something like this
-      //t = (_forward) ? EasingFunctions.linear( t ) : EasingFunctions.easeInCubic( t ) ;
-
-      _position_x = self.start.heading + ((self.end.heading - self.start.heading) * t);
-      _position_y = self.start.pitch + ((self.end.pitch - self.start.pitch) * t);
-
-      var lookat = 180-(_origin_heading.toDeg());
-      lookat += _position_x;
+      var o_heading = -_origin_heading.toDeg();
+      o_heading += _lookat_heading;
       
-      var p = -(_origin_pitch.toDeg());
-      p += _position_y;
+      var o_pitch = -(_origin_pitch.toDeg());
+      o_pitch += _position_y;
 
       var olon = _lon, olat = _lat;
-      _lon = _lon + ( lookat - olon );
-      _lat = _lat + ( p - olat );
+      _lon = _lon + ( o_heading - olon );
+      _lat = _lat + ( o_pitch - olat );
 
       _lat = Math.max( - 85, Math.min( 85, _lat ) );
       var phi = ( 90 - _lat ).toRad();
@@ -287,6 +266,7 @@ var Hyperlapse = function(container, map, params) {
       _mesh.material.map.needsUpdate = true;
       _origin_heading = _headings[_point_index];
       _origin_pitch = _pitchs[_point_index];
+      _lookat_heading = google.maps.geometry.spherical.computeHeading(_points[_point_index], self.lookat);
 
       self.broadcastMessage('onFrame',{
          position:_point_index, 

@@ -5,6 +5,7 @@
    <title>Basic</title> 
 
    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false" type="text/javascript"></script> 
+   <script src="js/dat.gui.min.js"></script>
    <script src="js/GSVPano.js"></script>
    <script src="js/Three.js"></script>
    <script src="js/RequestAnimationFrame.js"></script>
@@ -13,7 +14,8 @@
    
       var start_point = new google.maps.LatLng(44.3431,6.783936);
       var end_point = new google.maps.LatLng(44.340578,6.782684);
-      var map, pin, directions_renderer;
+      var lookat_point = new google.maps.LatLng(44.344875,6.790581);
+      var map, pin, pivot, directions_renderer;
 
       function init() {
 
@@ -22,7 +24,7 @@
          var mapOpt = { 
             mapTypeId: google.maps.MapTypeId.ROADMAP,
             center: start_point,
-            zoom: 16
+            zoom: 15
          };
 
          map = new google.maps.Map(document.getElementById("map"), mapOpt);
@@ -36,12 +38,24 @@
             map: map
          });
 
+         pivot = new google.maps.Marker({
+            position: lookat_point,
+            draggable: true,
+            map: map
+         });
+
+         google.maps.event.addListener (pivot, 'drag', function (event) {
+            hyperlapse.lookat = pivot.getPosition();
+         });
+
 
          /* Hyperlapse */
 
          var hyperlapse = new Hyperlapse(document.getElementById('pano'), map, {
-            start: {point:start_point, heading:-35, pitch:-10}, 
-            end: {point:end_point, heading:-10, pitch:-10},
+            start: start_point, 
+            end: end_point,
+            lookat: lookat_point,
+            interval: 25,
             distance: 10
          });
          
@@ -59,11 +73,21 @@
          }});
 
          hyperlapse.addListener({'onFrame': function(e){
-            //console.log(e.position +" "+ e.heading +" "+ e.pitch +" "+ e.point);
             pin.setPosition(e.point);
          }});
 
          hyperlapse.generate();
+
+         var gui = new dat.GUI();
+
+         var o = {pitch:0};
+         var pitch_control = gui.add(o, 'pitch', -90, 90);
+         pitch_control.onChange(function(value) {
+            hyperlapse.setPitch( value );
+         });
+
+         gui.add(hyperlapse, 'play');
+         gui.add(hyperlapse, 'pause');
       }
 
       window.onload = init;
