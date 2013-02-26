@@ -203,7 +203,35 @@ var Hyperlapse = function(container, map, params) {
       _forward = true;
    };
 
-   
+   this.handleRoute = function(response) {
+      self.reset();
+
+      var path = response.routes[0].overview_path;
+
+      for(var i=0; i<path.length; i++) {
+
+         if(i+1 < path.length-1) {
+            var d = google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1]);
+
+            if(d > _d) {
+               var total_segments = Math.floor(d/_d)
+
+               for(var j=0; j<total_segments; j++) {
+                  var t = j/total_segments;
+                  var way = pointOnLine(t, path[i], path[i+1]);
+                  _points.push(way);
+               }
+            } else {
+               _points.push(path[i]);
+            }
+            
+         } else {
+            _points.push(path[i]);
+         }
+      }
+
+      _loader.load( _points[_point_index] );
+   }   
 
    this.generate = function() {
       if(!self.start==null || !self.end==null) return;
@@ -219,34 +247,10 @@ var Hyperlapse = function(container, map, params) {
 
          _directions_service.route(route.request, function(response, status) {
             if (status == google.maps.DirectionsStatus.OK) {
-               self.reset();
+
                self.broadcastMessage('onRoute',{response: response});
+               self.handleRoute(response);
 
-               var path = response.routes[0].overview_path;
-
-               for(var i=0; i<path.length; i++) {
-
-                  if(i+1 < path.length-1) {
-                     var d = google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1]);
-
-                     if(d > _d) {
-                        var total_segments = Math.floor(d/_d)
-
-                        for(var j=0; j<total_segments; j++) {
-                           var t = j/total_segments;
-                           var way = pointOnLine(t, path[i], path[i+1]);
-                           _points.push(way);
-                        }
-                     } else {
-                        _points.push(path[i]);
-                     }
-                     
-                  } else {
-                     _points.push(path[i]);
-                  }
-               }
-
-               _loader.load( _points[_point_index] );
             } else {
                console.log(status);
             }
