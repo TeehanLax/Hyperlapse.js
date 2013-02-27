@@ -76,6 +76,12 @@
             pin.setPosition(e.point);
          }});
 
+         google.maps.event.addListener(directions_renderer, 'directions_changed', function() {  
+             hyperlapse.generate(directions_renderer.getDirections());  
+         });
+
+         directions_renderer.addListener();         
+
          hyperlapse.generate();
 
          var gui = new dat.GUI();

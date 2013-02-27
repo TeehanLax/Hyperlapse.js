@@ -28,7 +28,7 @@ var pointOnLine = function(t, a, b) {
 
 var Hyperlapse = function(container, map, params) {
 
-   /* private methods */
+   /* private */
 
    var getElevation = function(locations, callback) {
       var positionalRequest = {
@@ -42,7 +42,43 @@ var Hyperlapse = function(container, map, params) {
             callback(null);
          }
       });
-   }
+   };
+
+   var handleDirectionsRoute = function(response) {
+      if(!_is_running) {
+         self.reset();
+
+         var path = response.routes[0].overview_path;
+
+         for(var i=0; i<path.length; i++) {
+
+            if(i+1 < path.length-1) {
+               var d = google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1]);
+
+               if(d > _d) {
+                  var total_segments = Math.floor(d/_d)
+
+                  for(var j=0; j<total_segments; j++) {
+                     var t = j/total_segments;
+                     var way = pointOnLine(t, path[i], path[i+1]);
+                     _points.push(way);
+                  }
+               } else {
+                  _points.push(path[i]);
+               }
+               
+            } else {
+               _points.push(path[i]);
+            }
+         }
+
+         _loader.load( _points[_point_index] );
+
+      } else {
+         self.pause();
+         handleDirectionsRoute(response);
+      } 
+   }; 
 
    var self = this,
       _listeners = [],
@@ -70,46 +106,6 @@ var Hyperlapse = function(container, map, params) {
       _loader,
       _points = [], _headings = [], _pitchs = [], _mats = [], _elevations = [];
 
-   this.start = _params.start || null;
-   this.end = _params.end || null;
-   this.lookat = _params.lookat || null;
-   this.elevation_offset = 0;
-   this.tilt = 0;
-
-   this.isRunning = function() { return _is_running; };
-   this.length = function() { return _points.length; };
-   this.setPitch = function(val) { _position_y = val };
-
-   this.addListener = function(o){
-      self.removeListener (o);
-      return _listeners.push(o);
-   };
-
-   this.removeListener = function(o){
-      var a = _listeners;   
-      var i = a.length;
-      while (i--) {
-         if (a[i] == o) {
-            a.splice (i, 1);
-            return true;
-         }
-      }
-   };
-
-   this.broadcastMessage = function(){
-      var arr = new Array();
-      for(var i = 0; i < arguments.length; i++){
-         arr.push(arguments[i])
-      }
-      var e = arr.shift();
-      var a = _listeners;
-      var l = a.length;
-      for (var i=0; i<l; i++){
-         if(a[i][e])
-         a[i][e].apply(a[i], arr);
-      }
-   };
-   
    _directions_service = new google.maps.DirectionsService();
    _elevator = new google.maps.ElevationService();
 
@@ -168,6 +164,49 @@ var Hyperlapse = function(container, map, params) {
       }
    };
 
+
+   /* public */
+
+   this.start = _params.start || null;
+   this.end = _params.end || null;
+   this.lookat = _params.lookat || null;
+   this.elevation_offset = 0;
+   this.tilt = 0;
+
+   this.isRunning = function() { return _is_running; };
+   this.length = function() { return _points.length; };
+   this.setPitch = function(val) { _position_y = val };
+
+   this.addListener = function(o){
+      self.removeListener (o);
+      return _listeners.push(o);
+   };
+
+   this.removeListener = function(o){
+      var a = _listeners;   
+      var i = a.length;
+      while (i--) {
+         if (a[i] == o) {
+            a.splice (i, 1);
+            return true;
+         }
+      }
+   };
+
+   this.broadcastMessage = function(){
+      var arr = new Array();
+      for(var i = 0; i < arguments.length; i++){
+         arr.push(arguments[i])
+      }
+      var e = arr.shift();
+      var a = _listeners;
+      var l = a.length;
+      for (var i=0; i<l; i++){
+         if(a[i][e])
+         a[i][e].apply(a[i], arr);
+      }
+   };
+
    // TODO: make this the standard setter
    this.setLookat = function(point) {
       self.lookat = point;
@@ -189,6 +228,7 @@ var Hyperlapse = function(container, map, params) {
       _headings = [];
       _pitchs = [];
       _mats = [];
+      _elevations = [];
 
       _lat = 0;
       _lon = 0;
@@ -201,42 +241,19 @@ var Hyperlapse = function(container, map, params) {
       _origin_pitch = 0;
 
       _forward = true;
-   };
+   };  
 
-   this.handleRoute = function(response) {
-      self.reset();
+   this.generate = function( route ) {
 
-      var path = response.routes[0].overview_path;
+      if(route) {
+         handleDirectionsRoute(route);
+      } else {
+ 
+         if(!self.start==null || !self.end==null) {
+            console.log("no start or end point");
+            return;
+         } 
 
-      for(var i=0; i<path.length; i++) {
-
-         if(i+1 < path.length-1) {
-            var d = google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1]);
-
-            if(d > _d) {
-               var total_segments = Math.floor(d/_d)
-
-               for(var j=0; j<total_segments; j++) {
-                  var t = j/total_segments;
-                  var way = pointOnLine(t, path[i], path[i+1]);
-                  _points.push(way);
-               }
-            } else {
-               _points.push(path[i]);
-            }
-            
-         } else {
-            _points.push(path[i]);
-         }
-      }
-
-      _loader.load( _points[_point_index] );
-   }   
-
-   this.generate = function() {
-      if(!self.start==null || !self.end==null) return;
-
-      if(!_is_running) {
          var route = { label:'Hyperlapse',
             request:{
                origin: self.start, 
@@ -247,17 +264,13 @@ var Hyperlapse = function(container, map, params) {
 
          _directions_service.route(route.request, function(response, status) {
             if (status == google.maps.DirectionsStatus.OK) {
-
                self.broadcastMessage('onRoute',{response: response});
-               self.handleRoute(response);
-
+               handleDirectionsRoute(response);
             } else {
                console.log(status);
             }
          });
-      } else {
-         self.pause();
-         self.generate();
+         
       }
       
    };  
@@ -335,8 +348,5 @@ var Hyperlapse = function(container, map, params) {
          } 
       }
    };
-
-
-   
 
 }
