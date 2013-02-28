@@ -16,6 +16,13 @@ Number.prototype.toDeg = function() {
    return this * 180 / Math.PI;
 }
 
+// Array Remove - By John Resig (MIT Licensed)
+Array.prototype.remove = function(from, to) {
+  var rest = this.slice((to || from) + 1 || this.length);
+  this.length = from < 0 ? this.length + from : from;
+  return this.push.apply(this, rest);
+};
+
 var pointOnLine = function(t, a, b) {
    var lat1 = a.lat().toRad(), lon1 = a.lng().toRad();
    var lat2 = b.lat().toRad(), lon2 = b.lng().toRad();
@@ -28,58 +35,6 @@ var pointOnLine = function(t, a, b) {
 
 var Hyperlapse = function(container, map, params) {
 
-   /* private */
-
-   var getElevation = function(locations, callback) {
-      var positionalRequest = {
-         locations: locations
-      }
-
-     _elevator.getElevationForLocations(positionalRequest, function(results, status) {
-         if (status == google.maps.ElevationStatus.OK) {
-            callback(results);
-         } else {
-            callback(null);
-         }
-      });
-   };
-
-   var handleDirectionsRoute = function(response) {
-      if(!_is_running) {
-         self.reset();
-
-         var path = response.routes[0].overview_path;
-
-         for(var i=0; i<path.length; i++) {
-
-            if(i+1 < path.length-1) {
-               var d = google.maps.geometry.spherical.computeDistanceBetween(path[i], path[i+1]);
-
-               if(d > _d) {
-                  var total_segments = Math.floor(d/_d)
-
-                  for(var j=0; j<total_segments; j++) {
-                     var t = j/total_segments;
-                     var way = pointOnLine(t, path[i], path[i+1]);
-                     _points.push(way);
-                  }
-               } else {
-                  _points.push(path[i]);
-               }
-               
-            } else {
-               _points.push(path[i]);
-            }
-         }
-
-         _loader.load( _points[_point_index] );
-
-      } else {
-         self.pause();
-         handleDirectionsRoute(response);
-      } 
-   }; 
-
    var self = this,
       _listeners = [],
       _container = container,
@@ -87,23 +42,25 @@ var Hyperlapse = function(container, map, params) {
       _params = params || {},
       _w = _params.width || 800,
       _h = _params.height || 400,
-      _d = _params.distance || 20,
+      _d = 20,
+      _distance_between_points = _params.distance_between_points || 20,
+      _max_points = _params.max_points || 100,
       _fov = _params.fov || 70,
       _zoom = _params.zoom || 1,
-      _millis = _params.interval || 50,
       _directions_service,
       _elevator,
       _lat = 0, _lon = 0,
       _position_x = 0, _position_y = 0,
-      _is_running = false,
+      _is_playing = false,
       _point_index = 0, 
       _origin_heading = 0, _origin_pitch = 0,
       _forward = true,
-      _lookat_heading = 0, _lookat_elevation = 0,
-      _interval = null,
+      _lookat_heading = 0, _lookat_elevation = 0, _lookat_enabled = true,
       _canvas, _context,
       _camera, _scene, _renderer, _mesh,
       _loader,
+      _ctime = Date.now(),
+      _ptime = 0, _dtime = 0,
       _points = [], _headings = [], _pitchs = [], _mats = [], _elevations = [];
 
    _directions_service = new google.maps.DirectionsService();
@@ -159,10 +116,133 @@ var Hyperlapse = function(container, map, params) {
             _elevations = results;
 
             self.animate();  
-            self.play();
          });
       }
    };
+
+
+   /* private */
+
+   var getElevation = function(locations, callback) {
+      var positionalRequest = {
+         locations: locations
+      }
+
+     _elevator.getElevationForLocations(positionalRequest, function(results, status) {
+         if (status == google.maps.ElevationStatus.OK) {
+            callback(results);
+         } else {
+            callback(null);
+         }
+      });
+   };
+
+   var handleDirectionsRoute = function(response) {
+      if(!_is_playing) {
+         self.reset();
+         var route = response.routes[0];
+         var path = route.overview_path;
+         var legs = route.legs;
+
+         var total_distance = 0;
+         for(var i=0; i<legs.length; ++i) {
+            total_distance += legs[i].distance.value;
+         }
+
+         var segment_length = total_distance/_max_points;
+         _d = (segment_length < _distance_between_points) ? _d = _distance_between_points : _d = segment_length;
+
+         var d = 0;
+         var r = 0;
+         var a, b;
+
+         for(i=0; i<path.length; i++) {
+            if(i+1 < path.length-1) {
+
+               a = path[i];
+               b = path[i+1];
+               d = google.maps.geometry.spherical.computeDistanceBetween(a, b);
+
+               if(r > 0 && r < d) {
+                  a = pointOnLine(r/d, a, b);
+                  d = google.maps.geometry.spherical.computeDistanceBetween(a, b);
+                  _points.push(a);
+
+                  r = 0;
+               } else if(r > 0 && r > d) {
+                  r -= d; 
+               }
+               
+               if(r == 0) {
+                  var segs = Math.floor(d/_d);
+   
+                  if(segs > 0) {
+                     for(var j=0; j<segs; j++) {
+                        var t = j/segs;
+   
+                        if(t!=0 || (t==0&&i==0)  ) { // not start point
+                           var way = pointOnLine(t, a, b);
+                           _points.push(way);
+                        }          
+                     } 
+
+                     r = d-(_d*segs);
+                  } else {
+                     r = _d*( 1-(d/_d) );
+                  }
+               }
+
+            } else {
+               _points.push(path[i]);
+            }
+         }
+         
+         _loader.load( _points[_point_index] );
+
+      } else {
+         self.pause();
+         handleDirectionsRoute(response);
+      } 
+   }; 
+
+   var drawMaterial = function() {
+      _mesh.material.map = _mats[_point_index]; 
+      _mesh.material.map.needsUpdate = true;
+      _origin_heading = _headings[_point_index];
+      _origin_pitch = _pitchs[_point_index];
+      _lookat_heading = google.maps.geometry.spherical.computeHeading(_points[_point_index], self.lookat);
+
+      var e = _elevations[_point_index].elevation - self.elevation_offset;
+      var d = google.maps.geometry.spherical.computeDistanceBetween(_points[_point_index], self.lookat);
+      var dif = _lookat_elevation - e;
+      var angle = Math.atan( Math.abs(dif)/d ).toDeg();
+      _position_y = (dif<0) ? -angle : angle;
+
+      self.broadcastMessage('onFrame',{
+         position:_point_index, 
+         heading: _origin_heading, 
+         pitch: _origin_pitch, 
+         point: _points[_point_index]
+      });
+   };
+
+   var loop = function() {
+      drawMaterial();
+
+      if(_forward) {
+         if(++_point_index == _points.length) {
+            _point_index = _points.length-1;
+            _forward = !_forward;
+         } 
+      } else {
+         if(--_point_index == -1) {
+            _point_index = 0;
+            _forward = !_forward;
+         } 
+      }
+   };
+
+   
 
 
    /* public */
@@ -170,10 +250,13 @@ var Hyperlapse = function(container, map, params) {
    this.start = _params.start || null;
    this.end = _params.end || null;
    this.lookat = _params.lookat || null;
+   this.millis = _params.millis || 50;
    this.elevation_offset = 0;
    this.tilt = 0;
 
-   this.isRunning = function() { return _is_running; };
+   this.enableLookat = function() { _lookat_enabled = true; };
+   this.disableLookat = function() { _lookat_enabled = false };
+   this.isRunning = function() { return _is_playing; };
    this.length = function() { return _points.length; };
    this.setPitch = function(val) { _position_y = val };
 
@@ -224,11 +307,11 @@ var Hyperlapse = function(container, map, params) {
    };
 
    this.reset = function() {
-      _points = [];
-      _headings = [];
-      _pitchs = [];
-      _mats = [];
-      _elevations = [];
+      _points.remove(0,-1);
+      _headings.remove(0,-1);
+      _pitchs.remove(0,-1);
+      _mats.remove(0,-1);
+      _elevations.remove(0,-1);
 
       _lat = 0;
       _lon = 0;
@@ -243,10 +326,14 @@ var Hyperlapse = function(container, map, params) {
       _forward = true;
    };  
 
-   this.generate = function( route ) {
+   this.generate = function( params ) {
 
-      if(route) {
-         handleDirectionsRoute(route);
+      var params = params || {};
+      _distance_between_points = params.distance_between_points || _distance_between_points;
+      _max_points = params.max_points || _max_points;
+
+      if(params.route) {
+         handleDirectionsRoute(params.route);
       } else {
  
          if(!self.start==null || !self.end==null) {
@@ -276,6 +363,14 @@ var Hyperlapse = function(container, map, params) {
    };  
 
    this.animate = function() {
+      var ptime = _ctime;
+      _ctime = Date.now();
+      _dtime += _ctime - ptime;
+      if(_dtime >= self.millis) {
+         if(_is_playing) loop();
+         _dtime = 0;
+      }
+
       requestAnimationFrame( self.animate );
       self.render();
    };
@@ -283,11 +378,10 @@ var Hyperlapse = function(container, map, params) {
    this.render = function() {
       var t = _point_index/(self.length()-1);
 
-      var o_heading = -_origin_heading.toDeg();
-      o_heading += _lookat_heading;
-      
+      var o_heading = (_lookat_enabled) ? _lookat_heading - _origin_heading.toDeg() : 0;
+
       var o_pitch = -(_origin_pitch.toDeg());
-      o_pitch = _position_y;
+      if(_lookat_enabled) o_pitch = _position_y;
 
       var olon = _lon, olat = _lat;
       _lon = _lon + ( o_heading - olon );
@@ -307,46 +401,28 @@ var Hyperlapse = function(container, map, params) {
    };
 
    this.play = function() {
-      _is_running = true;
-      _interval = setInterval(self.loop, _millis);
+      _is_playing = true;
    };
 
    this.pause = function() {
-      window.clearInterval( _interval );
-      _is_running = false;
+      _is_playing = false;
    };
 
-   this.loop = function () {
-      _mesh.material.map = _mats[_point_index]; 
-      _mesh.material.map.needsUpdate = true;
-      _origin_heading = _headings[_point_index];
-      _origin_pitch = _pitchs[_point_index];
-      _lookat_heading = google.maps.geometry.spherical.computeHeading(_points[_point_index], self.lookat);
+   this.next = function() {
+      self.pause();
 
-      var e = _elevations[_point_index].elevation - self.elevation_offset;
-      var d = google.maps.geometry.spherical.computeDistanceBetween(_points[_point_index], self.lookat);
-      var dif = _lookat_elevation - e;
-      var angle = Math.atan( Math.abs(dif)/d ).toDeg();
-      _position_y = (dif<0) ? -angle : angle;
-
-      self.broadcastMessage('onFrame',{
-         position:_point_index, 
-         heading: _origin_heading, 
-         pitch: _origin_pitch, 
-         point: _points[_point_index]
-      });
-
-      if(_forward) {
-         if(++_point_index == _points.length) {
-            _point_index = _points.length-1;
-            _forward = !_forward;
-         } 
-      } else {
-         if(--_point_index == -1) {
-            _point_index = 0;
-            _forward = !_forward;
-         } 
-      }
+      if(_point_index+1 != _points.length) {
+         _point_index++;
+         drawMaterial();
+      } 
    };
 
+   this.prev = function() {
+      self.pause();
+
+      if(_point_index-1 != 0) {
+         _point_index--;
+         drawMaterial();
+      } 
+   };
 }

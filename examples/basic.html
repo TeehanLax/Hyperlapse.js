@@ -15,7 +15,8 @@
       var start_point = new google.maps.LatLng(44.3431,6.783936);
       var end_point = new google.maps.LatLng(44.340578,6.782684);
       var lookat_point = new google.maps.LatLng(44.344875,6.790581);
-      var map, pin, pivot, directions_renderer;
+      var map, directions_renderer;
+      var start_pin, end_pin, pivot_pin, camera_pin;
 
       function init() {
 
@@ -29,24 +30,45 @@
 
          map = new google.maps.Map(document.getElementById("map"), mapOpt);
 
-         directions_renderer = new google.maps.DirectionsRenderer({draggable:true, polylineOptions:{geodesic: false}});
+         directions_renderer = new google.maps.DirectionsRenderer({draggable:false, markerOptions:{visible: false}});
          directions_renderer.setMap(map);
          directions_renderer.setOptions({preserveViewport:true});
 
-         pin = new google.maps.Marker({
+         camera_pin = new google.maps.Marker({
             position: start_point,
             map: map
          });
 
-         pivot = new google.maps.Marker({
+         start_pin = new google.maps.Marker({
+            position: start_point,
+            draggable: true,
+            map: map
+         });
+
+         google.maps.event.addListener (start_pin, 'dragend', function (event) {
+            hyperlapse.start = start_pin.getPosition();
+         });
+
+         end_pin = new google.maps.Marker({
+            position: end_point,
+            draggable: true,
+            map: map
+         });
+
+         google.maps.event.addListener (end_pin, 'dragend', function (event) {
+            hyperlapse.end = end_pin.getPosition();
+         });
+
+         pivot_pin = new google.maps.Marker({
             position: lookat_point,
             draggable: true,
             map: map
          });
 
-         google.maps.event.addListener (pivot, 'drag', function (event) {
-            hyperlapse.setLookat( pivot.getPosition() );
+         google.maps.event.addListener (pivot_pin, 'dragend', function (event) {
+            hyperlapse.setLookat( pivot_pin.getPosition() );
          });
+
 
 
          /* Hyperlapse */
@@ -55,8 +77,12 @@
             start: start_point, 
             end: end_point,
             lookat: lookat_point,
-            interval: 50,
-            distance: 10
+            millis: 50,
+            width: 854,
+            height: 480,
+            zoom: 1,
+            distance_between_points: 10,
+            max_points: 100
          });
          
          hyperlapse.addListener({'onRoute': function(e){
@@ -65,7 +91,7 @@
          }});
 
          hyperlapse.addListener({'onLoadProgress': function(e){
-            console.log(e.position +" "+ hyperlapse.length());
+            document.getElementById("text").innerHTML = "Loading: "+ (e.position+1) +" of "+ hyperlapse.length();
          }});
 
          hyperlapse.addListener({'onLoadComplete': function(e){
@@ -73,32 +99,56 @@
          }});
 
          hyperlapse.addListener({'onFrame': function(e){
-            pin.setPosition(e.point);
+            camera_pin.setPosition(e.point);
+            //console.log(e.point);
+            document.getElementById("text").innerHTML = "Position: "+ (e.position+1) +" of "+ hyperlapse.length();
          }});
-
-         google.maps.event.addListener(directions_renderer, 'directions_changed', function() {  
-             hyperlapse.generate(directions_renderer.getDirections());  
-         });
 
          directions_renderer.addListener();         
 
-         hyperlapse.generate();
+
+         /* Dat GUI */
 
          var gui = new dat.GUI();
 
-         var o = {elevation_offset:0, tilt:0};
-         var pitch_control = gui.add(o, 'elevation_offset', -500, 500);
+         var o = {elevation_offset:0, tilt:0, millis:50, lookat:true};
+
+         var parameters = gui.addFolder('parameters');
+         var pitch_control = parameters.add(o, 'elevation_offset', -500, 500);
          pitch_control.onChange(function(value) {
             hyperlapse.elevation_offset = value;
          });
 
-         var tilt_control = gui.add(o, 'tilt', -Math.PI/2, Math.PI/2);
+         var tilt_control = parameters.add(o, 'tilt', -Math.PI/2, Math.PI/2);
          tilt_control.onChange(function(value) {
             hyperlapse.tilt = value;
          });
 
-         gui.add(hyperlapse, 'play');
-         gui.add(hyperlapse, 'pause');
+         var millis_control = parameters.add(o, 'millis', 10, 250);
+         millis_control.onChange(function(value) {
+            hyperlapse.millis = value;
+         });
+
+         var lookat_control = parameters.add(o, 'lookat');
+         lookat_control.onChange(function(value) {
+            if(value) {
+               hyperlapse.enableLookat();
+            } else {
+               hyperlapse.disableLookat();
+            }
+         });
+         parameters.open();
+
+         
+
+         var play_controls = gui.addFolder('play controls');
+         play_controls.add(hyperlapse, 'play');
+         play_controls.add(hyperlapse, 'pause');
+         play_controls.add(hyperlapse, 'next');
+         play_controls.add(hyperlapse, 'prev');
+         play_controls.open();
+
+         gui.add(hyperlapse, 'generate');
       }
 
       window.onload = init;
@@ -106,6 +156,7 @@
 </head> 
 <body> 
    <div id="pano" ></div>
-   <div id="map" style="width: 600px; height: 400px"></div>
+   <div id="map" style="width: 400px; height: 200px"></div>
+   <div id="text"></div>
 </body> 
 </html>
