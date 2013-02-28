@@ -80,7 +80,7 @@
             millis: 50,
             width: 854,
             height: 480,
-            zoom: 1,
+            zoom: 2,
             distance_between_points: 10,
             max_points: 100
          });
@@ -111,9 +111,15 @@
 
          var gui = new dat.GUI();
 
-         var o = {elevation_offset:0, tilt:0, millis:50, lookat:true, elevation:true};
+         var o = {fov: 70, elevation_offset:0, tilt:0, millis:50, lookat:true, elevation:true};
 
          var parameters = gui.addFolder('parameters');
+
+         var fov_control = parameters.add(o, 'fov', 1, 180);
+         fov_control.onChange(function(value) {
+            hyperlapse.setFOV(value);
+         });
+
          var pitch_control = parameters.add(o, 'elevation_offset', -500, 500);
          pitch_control.onChange(function(value) {
             hyperlapse.elevation_offset = value;
