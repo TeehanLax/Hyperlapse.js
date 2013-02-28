@@ -104,7 +104,7 @@ GSVPANO.PanoLoader = function (parameters) {
 				var h = google.maps.geometry.spherical.computeHeading(location, result.location.latLng);
 
 				rotation = (result.tiles.centerHeading) * Math.PI / 180.0;
-				pitch = (result.tiles.originPitch) * Math.PI / 180.0;
+				pitch = result.tiles.originPitch;
 				copyright = result.copyright;
 				self.copyright = result.copyright;
 				_panoId = result.location.pano;
