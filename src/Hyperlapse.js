@@ -47,8 +47,6 @@ var Hyperlapse = function(container, map, params) {
       _max_points = _params.max_points || 100,
       _fov = _params.fov || 70,
       _zoom = _params.zoom || 1,
-      _directions_service,
-      _elevator,
       _lat = 0, _lon = 0,
       _position_x = 0, _position_y = 0,
       _is_playing = false,
@@ -63,8 +61,9 @@ var Hyperlapse = function(container, map, params) {
       _ptime = 0, _dtime = 0,
       _points = [], _headings = [], _pitchs = [], _mats = [], _elevations = [];
 
-   _directions_service = new google.maps.DirectionsService();
-   _elevator = new google.maps.ElevationService();
+   var _directions_service = new google.maps.DirectionsService();
+   var _elevator = new google.maps.ElevationService();
+   var _streetview_service = new google.maps.StreetViewService();
 
    _canvas = document.createElement( 'canvas' );
    _context = _canvas.getContext( '2d' );
@@ -92,6 +91,10 @@ var Hyperlapse = function(container, map, params) {
    _container.appendChild( _renderer.domElement );
 
    _loader = new GSVPANO.PanoLoader( {zoom: _zoom} );
+   _loader.onError = function(message) {
+      self.broadcastMessage('onError',{message:message});
+   };
+
    _loader.onPanoramaLoad = function() {
       var canvas = document.createElement("canvas");
       var context = canvas.getContext('2d');
@@ -137,6 +140,20 @@ var Hyperlapse = function(container, map, params) {
       });
    };
 
+   var addPoint = function(point) {
+      // _streetview_service.getPanoramaByLocation(point, 100, function (data, status) {
+      //    console.log(data);
+      //    if (status === google.maps.StreetViewStatus.OK) {
+      //      // ok
+      //    } else {
+      //      // no street view available in this range, or some error occurred
+      //    }
+      // });
+      // console.log(point);
+      // console.log(" ");
+      _points.push(point);
+   }
+
    var handleDirectionsRoute = function(response) {
       if(!_is_playing) {
          self.reset();
@@ -166,7 +183,7 @@ var Hyperlapse = function(container, map, params) {
                if(r > 0 && r < d) {
                   a = pointOnLine(r/d, a, b);
                   d = google.maps.geometry.spherical.computeDistanceBetween(a, b);
-                  _points.push(a);
+                  addPoint(a);
 
                   r = 0;
                } else if(r > 0 && r > d) {
@@ -182,7 +199,7 @@ var Hyperlapse = function(container, map, params) {
    
                         if(t!=0 || (t==0&&i==0)  ) { // not start point
                            var way = pointOnLine(t, a, b);
-                           _points.push(way);
+                           addPoint(way);
                         }          
                      } 
 
@@ -193,11 +210,11 @@ var Hyperlapse = function(container, map, params) {
                }
 
             } else {
-               _points.push(path[i]);
+               addPoint(path[i]);
             }
          }
 
-         _loader.load( _points[_point_index] );
+         self.broadcastMessage('onPoints',{ points: _points });
 
       } else {
          self.pause();
@@ -260,7 +277,9 @@ var Hyperlapse = function(container, map, params) {
    this.disableLookat = function() { _lookat_enabled = false };
    this.isRunning = function() { return _is_playing; };
    this.length = function() { return _points.length; };
-   this.setPitch = function(val) { _position_y = val };
+   this.setPitch = function(v) { _position_y = v; };
+   this.setDistanceBetweenPoint = function(v) { _distance_between_points = v; };
+   this.setMaxPoints = function(v) { _max_points = v; };
 
    this.addListener = function(o){
       self.removeListener (o);
@@ -368,6 +387,10 @@ var Hyperlapse = function(container, map, params) {
       }
       
    };  
+
+   this.load = function() {
+      _loader.load( _points[_point_index] );
+   };
 
    this.animate = function() {
       var ptime = _ctime;

@@ -15,7 +15,7 @@
       var start_point = new google.maps.LatLng(44.3431,6.783936);
       var end_point = new google.maps.LatLng(44.340578,6.782684);
       var lookat_point = new google.maps.LatLng(44.344875,6.790581);
-      var map, directions_renderer, directions_service;
+      var map, directions_renderer, directions_service, streetview_service;
       var start_pin, end_pin, pivot_pin, camera_pin;
 
       function init() {
@@ -88,9 +88,6 @@
 
          /* Hyperlapse */
 
-         var distance_between_points = 10;
-         var max_points = 100;
-
          var hyperlapse = new Hyperlapse(document.getElementById('pano'), map, {
             start: start_point, 
             end: end_point,
@@ -99,21 +96,32 @@
             width: 854,
             height: 480,
             zoom: 1,
-            distance_between_points: distance_between_points,
-            max_points: max_points
+            distance_between_points: 10,
+            max_points: 100
          });
          
          hyperlapse.addListener({'onRoute': function(e){
-            console.log(e.response);
             directions_renderer.setDirections(e.response);
+         }});
+
+         hyperlapse.addListener({'onPoints': function(e){
+            console.log(e.points);
          }});
 
          hyperlapse.addListener({'onLoadProgress': function(e){
             document.getElementById("text").innerHTML = "Loading: "+ (e.position+1) +" of "+ hyperlapse.length();
          }});
 
+         hyperlapse.addListener({'onError': function(e){
+            document.getElementById("text").innerHTML = "ERROR: "+ e.message;
+         }});
+
          hyperlapse.addListener({'onLoadComplete': function(e){
-            console.log("load complete");
+            document.getElementById("text").innerHTML = "" +
+               "Start: " + start_pin.getPosition().toString() + 
+               "<br>End: " + end_pin.getPosition().toString() + 
+               "<br>Lookat: " + pivot_pin.getPosition().toString() + 
+               "<br>Ready.";
          }});
 
          hyperlapse.addListener({'onFrame': function(e){
@@ -132,9 +140,19 @@
 
          var gui = new dat.GUI();
 
-         var o = {fov: 70, elevation_offset:0, tilt:0, millis:50, lookat:true, elevation:true};
+         var o = {distance_between_points:10, max_points:100, fov: 70, elevation_offset:0, tilt:0, millis:50, lookat:true, elevation:true};
 
          var parameters = gui.addFolder('parameters');
+
+         var distance_between_points_control = parameters.add(o, 'distance_between_points', 5, 100);
+         distance_between_points_control.onChange(function(value) {
+            hyperlapse.setDistanceBetweenPoint(value);
+         });
+
+         var max_points = parameters.add(o, 'max_points', 10, 300);
+         max_points.onChange(function(value) {
+            hyperlapse.setMaxPoints(value);
+         });
 
          var fov_control = parameters.add(o, 'fov', 1, 180);
          fov_control.onChange(function(value) {
@@ -182,9 +200,18 @@
             var c2 = new google.maps.LatLng(center.lat(), center.lng());
             var c3 = new google.maps.LatLng(center.lat(), center.lng()+spacing);
 
-            start_pin.setPosition(c1);
+
+            snapToRoad(c1, function(result) {
+               start_pin.setPosition(result);
+               hyperlapse.start = result;
+            });
+
+            snapToRoad(c3, function(result) {
+               end_pin.setPosition(result);
+               hyperlapse.end = result;
+            });
+
             pivot_pin.setPosition(c2);
-            end_pin.setPosition(c3);
          };
 
          var play_controls = gui.addFolder('play controls');
@@ -196,6 +223,7 @@
 
          gui.add(hyperlapse, 'drop_pins');
          gui.add(hyperlapse, 'generate');
+         gui.add(hyperlapse, 'load');
       }
 
       window.onload = init;
