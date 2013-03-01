@@ -214,7 +214,7 @@ var Hyperlapse = function(container, map, params) {
             }
          }
 
-         self.broadcastMessage('onPoints',{ points: _points });
+         self.broadcastMessage('onRoute',{response: response, points: _points});
 
       } else {
          self.pause();
@@ -376,8 +376,7 @@ var Hyperlapse = function(container, map, params) {
          };
 
          _directions_service.route(route.request, function(response, status) {
-            if (status == google.maps.DirectionsStatus.OK) {
-               self.broadcastMessage('onRoute',{response: response});
+            if (status == google.maps.DirectionsStatus.OK) {   
                handleDirectionsRoute(response);
             } else {
                console.log(status);

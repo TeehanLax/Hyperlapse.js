@@ -102,9 +102,6 @@
          
          hyperlapse.addListener({'onRoute': function(e){
             directions_renderer.setDirections(e.response);
-         }});
-
-         hyperlapse.addListener({'onPoints': function(e){
             console.log(e.points);
          }});
 
