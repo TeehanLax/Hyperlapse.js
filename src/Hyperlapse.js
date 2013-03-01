@@ -278,13 +278,13 @@ var Hyperlapse = function(container, map, params) {
    this.end = _params.end || null;
    this.lookat = _params.lookat || null;
    this.millis = _params.millis || 50;
-   this.elevation_offset = 0;
-   this.tilt = 0;
+   this.elevation_offset = _params.elevation_offset || 0;
+   this.tilt = _params.tilt || 0;
    this.useElevation = true;
 
    this.enableLookat = function() { _lookat_enabled = true; };
    this.disableLookat = function() { _lookat_enabled = false };
-   this.isRunning = function() { return _is_playing; };
+   this.isPlaying = function() { return _is_playing; };
    this.length = function() { return _points.length; };
    this.setPitch = function(v) { _position_y = v; };
    this.setDistanceBetweenPoint = function(v) { _distance_between_points = v; };

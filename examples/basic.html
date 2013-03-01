@@ -17,8 +17,17 @@
       var lookat_point = new google.maps.LatLng(44.344875,6.790581);
       var map, directions_renderer, directions_service, streetview_service;
       var start_pin, end_pin, pivot_pin, camera_pin;
+      var _elevation;
 
       function init() {
+
+         if( window.location.hash ) {
+            parts = window.location.hash.substr( 1 ).split( ',' );
+            start_point = new google.maps.LatLng(parts[0], parts[1]);
+            lookat_point = new google.maps.LatLng(parts[2], parts[3]);
+            end_point = new google.maps.LatLng(parts[4], parts[5]);
+            _elevation = parts[6] || 0;
+         } 
 
          /* Map */
 
@@ -28,6 +37,13 @@
                if(status=="OK") callback(response.routes[0].overview_path[0]);
                else callback(null);
             });
+         }
+
+         function changeHash() {
+            window.location.hash = start_pin.getPosition().lat() + ',' + start_pin.getPosition().lng() + ','
+               + pivot_pin.getPosition().lat() + ',' + pivot_pin.getPosition().lng() + ','
+               + end_pin.getPosition().lat() + ',' + end_pin.getPosition().lng() + ','
+               + _elevation;
          }
 
          var mapOpt = { 
@@ -58,6 +74,7 @@
             snapToRoad(start_pin.getPosition(), function(result) {
                start_pin.setPosition(result);
                hyperlapse.start = result;
+               changeHash();
             });
          });
 
@@ -71,6 +88,7 @@
             snapToRoad(end_pin.getPosition(), function(result) {
                end_pin.setPosition(result);
                hyperlapse.end = result;
+               changeHash();
             });
          });
 
@@ -82,6 +100,7 @@
 
          google.maps.event.addListener (pivot_pin, 'dragend', function (event) {
             hyperlapse.setLookat( pivot_pin.getPosition() );
+            changeHash();
          });
 
 
@@ -95,9 +114,10 @@
             millis: 50,
             width: 854,
             height: 480,
-            zoom: 2,
+            zoom: 1,
             distance_between_points: 10,
-            max_points: 100
+            max_points: 100,
+            elevation_offset: _elevation
          });
          
          hyperlapse.onRoute = function(e) {
@@ -137,7 +157,7 @@
 
          var gui = new dat.GUI();
 
-         var o = {distance_between_points:10, max_points:100, fov: 70, elevation_offset:0, tilt:0, millis:50, lookat:true, elevation:true};
+         var o = {distance_between_points:10, max_points:100, fov: 70, elevation_offset:_elevation, tilt:0, millis:50, lookat:true, elevation:true};
 
          var parameters = gui.addFolder('parameters');
 
@@ -156,9 +176,11 @@
             hyperlapse.setFOV(value);
          });
 
-         var pitch_control = parameters.add(o, 'elevation_offset', -500, 500);
+         var pitch_control = parameters.add(o, 'elevation_offset', -1000, 1000);
          pitch_control.onChange(function(value) {
+            _elevation = value;
             hyperlapse.elevation_offset = value;
+            changeHash();
          });
 
          var tilt_control = parameters.add(o, 'tilt', -Math.PI/2, Math.PI/2);
@@ -197,18 +219,18 @@
             var c2 = new google.maps.LatLng(center.lat(), center.lng());
             var c3 = new google.maps.LatLng(center.lat(), center.lng()+spacing);
 
-
-            snapToRoad(c1, function(result) {
-               start_pin.setPosition(result);
-               hyperlapse.start = result;
-            });
-
-            snapToRoad(c3, function(result) {
-               end_pin.setPosition(result);
-               hyperlapse.end = result;
-            });
-
             pivot_pin.setPosition(c2);
+
+            snapToRoad(c1, function(result1) {
+               start_pin.setPosition(result1);
+               hyperlapse.start = result1;
+
+               snapToRoad(c3, function(result3) {
+                  end_pin.setPosition(result3);
+                  hyperlapse.end = result3;
+                  changeHash();
+               });
+            });
          };
 
          var play_controls = gui.addFolder('play controls');
