@@ -61,6 +61,14 @@ var Hyperlapse = function(container, map, params) {
       _ptime = 0, _dtime = 0,
       _points = [], _headings = [], _pitchs = [], _mats = [], _elevations = [];
 
+   var handleRoute = function (e) { if (self.onRoute) self.onRoute(e); };
+   var handleError = function (e) { if (self.onError) self.onError(e); };
+   var handleLoadProgress = function (e) { if (self.onLoadProgress) self.onLoadProgress(e); };
+   var handleLoadComplete = function (e) { if (self.onLoadComplete) self.onLoadComplete(e); };
+   var handleFrame = function (e) { if (self.onFrame) self.onFrame(e); };
+   var handlePlay = function (e) { if (self.onPlay) self.onPlay(e); };
+   var handlePause = function (e) { if (self.onPause) self.onPause(e); };
+
    var _directions_service = new google.maps.DirectionsService();
    var _elevator = new google.maps.ElevationService();
    var _streetview_service = new google.maps.StreetViewService();
@@ -84,7 +92,7 @@ var Hyperlapse = function(container, map, params) {
    _renderer.autoClearColor = false;
    _renderer.setSize( _w, _h );
 
-   _mesh = new THREE.Mesh( new THREE.SphereGeometry( 500, 60, 40 ), new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( 'blank.jpg' ) } ) );
+   _mesh = new THREE.Mesh( new THREE.SphereGeometry( 250, 30, 20 ), new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( 'blank.jpg' ) } ) );
    _mesh.doubleSided = true;
    _scene.add( _mesh );
    
@@ -92,7 +100,7 @@ var Hyperlapse = function(container, map, params) {
 
    _loader = new GSVPANO.PanoLoader( {zoom: _zoom} );
    _loader.onError = function(message) {
-      self.broadcastMessage('onError',{message:message});
+      handleError({message:message});
    };
 
    _loader.onPanoramaLoad = function() {
@@ -109,10 +117,12 @@ var Hyperlapse = function(container, map, params) {
       _elevations.push(_points[_point_index]);
 
       if(++_point_index != _points.length) {
-         self.broadcastMessage('onLoadProgress',{position:_point_index});
+         handleLoadProgress({position:_point_index});
+
          _loader.load( _points[_point_index] );
       } else {
-         self.broadcastMessage('onLoadComplete',{});
+         handleLoadComplete({});
+      
          _point_index = 0;
 
          getElevation(_elevations, function(results){
@@ -146,11 +156,10 @@ var Hyperlapse = function(container, map, params) {
       //    if (status === google.maps.StreetViewStatus.OK) {
       //      // ok
       //    } else {
-      //      // no street view available in this range, or some error occurred
+      //      // no street view
       //    }
       // });
-      // console.log(point);
-      // console.log(" ");
+
       _points.push(point);
    }
 
@@ -214,7 +223,7 @@ var Hyperlapse = function(container, map, params) {
             }
          }
 
-         self.broadcastMessage('onRoute',{response: response, points: _points});
+         handleRoute({response: response, points: _points});
 
       } else {
          self.pause();
@@ -236,7 +245,7 @@ var Hyperlapse = function(container, map, params) {
 
       if(self.useElevation) _position_y = (dif<0) ? -angle : angle;
 
-      self.broadcastMessage('onFrame',{
+      handleFrame({
          position:_point_index, 
          heading: _origin_heading, 
          pitch: _origin_pitch, 
@@ -280,36 +289,6 @@ var Hyperlapse = function(container, map, params) {
    this.setPitch = function(v) { _position_y = v; };
    this.setDistanceBetweenPoint = function(v) { _distance_between_points = v; };
    this.setMaxPoints = function(v) { _max_points = v; };
-
-   this.addListener = function(o){
-      self.removeListener (o);
-      return _listeners.push(o);
-   };
-
-   this.removeListener = function(o){
-      var a = _listeners;   
-      var i = a.length;
-      while (i--) {
-         if (a[i] == o) {
-            a.splice (i, 1);
-            return true;
-         }
-      }
-   };
-
-   this.broadcastMessage = function(){
-      var arr = new Array();
-      for(var i = 0; i < arguments.length; i++){
-         arr.push(arguments[i])
-      }
-      var e = arr.shift();
-      var a = _listeners;
-      var l = a.length;
-      for (var i=0; i<l; i++){
-         if(a[i][e])
-         a[i][e].apply(a[i], arr);
-      }
-   };
 
    // TODO: make this the standard setter
    this.setLookat = function(point) {

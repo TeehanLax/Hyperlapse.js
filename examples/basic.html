@@ -95,40 +95,40 @@
             millis: 50,
             width: 854,
             height: 480,
-            zoom: 1,
+            zoom: 2,
             distance_between_points: 10,
             max_points: 100
          });
          
-         hyperlapse.addListener({'onRoute': function(e){
+         hyperlapse.onRoute = function(e) {
             directions_renderer.setDirections(e.response);
-            console.log(e.points);
-         }});
+            document.getElementById("text").innerHTML = "Number of Points: "+ hyperlapse.length();
+         };
 
-         hyperlapse.addListener({'onLoadProgress': function(e){
+         hyperlapse.onLoadProgress = function(e) {
             document.getElementById("text").innerHTML = "Loading: "+ (e.position+1) +" of "+ hyperlapse.length();
-         }});
+         };
 
-         hyperlapse.addListener({'onError': function(e){
+         hyperlapse.onError = function(e) {
             document.getElementById("text").innerHTML = "ERROR: "+ e.message;
-         }});
+         };
 
-         hyperlapse.addListener({'onLoadComplete': function(e){
+         hyperlapse.onLoadComplete = function(e) {
             document.getElementById("text").innerHTML = "" +
                "Start: " + start_pin.getPosition().toString() + 
                "<br>End: " + end_pin.getPosition().toString() + 
                "<br>Lookat: " + pivot_pin.getPosition().toString() + 
                "<br>Ready.";
-         }});
+         };
 
-         hyperlapse.addListener({'onFrame': function(e){
+         hyperlapse.onFrame = function(e) {
             camera_pin.setPosition(e.point);
             document.getElementById("text").innerHTML = "" +
                "Start: " + start_pin.getPosition().toString() + 
                "<br>End: " + end_pin.getPosition().toString() + 
                "<br>Lookat: " + pivot_pin.getPosition().toString() + 
                "<br>Position: "+ (e.position+1) +" of "+ hyperlapse.length();
-         }});
+         };
 
          directions_renderer.addListener();         
 
