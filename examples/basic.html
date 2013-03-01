@@ -15,21 +15,30 @@
       var start_point = new google.maps.LatLng(44.3431,6.783936);
       var end_point = new google.maps.LatLng(44.340578,6.782684);
       var lookat_point = new google.maps.LatLng(44.344875,6.790581);
-      var map, directions_renderer;
+      var map, directions_renderer, directions_service;
       var start_pin, end_pin, pivot_pin, camera_pin;
 
       function init() {
 
          /* Map */
 
+         function snapToRoad(point, callback) {
+            var request = { origin: point, destination: point, travelMode: google.maps.TravelMode["DRIVING"] };
+            directions_service.route(request, function(response, status) {
+               if(status=="OK") callback(response.routes[0].overview_path[0]);
+               else callback(null);
+            });
+         }
+
          var mapOpt = { 
-            mapTypeId: google.maps.MapTypeId.SATELLITE,
+            mapTypeId: google.maps.MapTypeId.ROADMAP,
             center: start_point,
             zoom: 15
          };
 
          map = new google.maps.Map(document.getElementById("map"), mapOpt);
 
+         directions_service = new google.maps.DirectionsService();
          directions_renderer = new google.maps.DirectionsRenderer({draggable:false, markerOptions:{visible: false}});
          directions_renderer.setMap(map);
          directions_renderer.setOptions({preserveViewport:true});
@@ -46,7 +55,10 @@
          });
 
          google.maps.event.addListener (start_pin, 'dragend', function (event) {
-            hyperlapse.start = start_pin.getPosition();
+            snapToRoad(start_pin.getPosition(), function(result) {
+               start_pin.setPosition(result);
+               hyperlapse.start = result;
+            });
          });
 
          end_pin = new google.maps.Marker({
@@ -56,7 +68,10 @@
          });
 
          google.maps.event.addListener (end_pin, 'dragend', function (event) {
-            hyperlapse.end = end_pin.getPosition();
+            snapToRoad(end_pin.getPosition(), function(result) {
+               end_pin.setPosition(result);
+               hyperlapse.end = result;
+            });
          });
 
          pivot_pin = new google.maps.Marker({
@@ -73,6 +88,9 @@
 
          /* Hyperlapse */
 
+         var distance_between_points = 10;
+         var max_points = 100;
+
          var hyperlapse = new Hyperlapse(document.getElementById('pano'), map, {
             start: start_point, 
             end: end_point,
@@ -80,9 +98,9 @@
             millis: 50,
             width: 854,
             height: 480,
-            zoom: 2,
-            distance_between_points: 10,
-            max_points: 100
+            zoom: 1,
+            distance_between_points: distance_between_points,
+            max_points: max_points
          });
          
          hyperlapse.addListener({'onRoute': function(e){
@@ -100,8 +118,11 @@
 
          hyperlapse.addListener({'onFrame': function(e){
             camera_pin.setPosition(e.point);
-            //console.log(e.point);
-            document.getElementById("text").innerHTML = "Position: "+ (e.position+1) +" of "+ hyperlapse.length();
+            document.getElementById("text").innerHTML = "" +
+               "Start: " + start_pin.getPosition().toString() + 
+               "<br>End: " + end_pin.getPosition().toString() + 
+               "<br>Lookat: " + pivot_pin.getPosition().toString() + 
+               "<br>Position: "+ (e.position+1) +" of "+ hyperlapse.length();
          }});
 
          directions_renderer.addListener();         
@@ -149,7 +170,22 @@
             }
          });
 
-         
+         hyperlapse.drop_pins = function(){
+            var bounds = map.getBounds();
+            var top_left = bounds.getNorthEast();
+            var bot_right = bounds.getSouthWest();
+            var hdif = Math.abs(top_left.lng() - bot_right.lng());
+            var spacing = hdif/4;
+
+            var center = map.getCenter();
+            var c1 = new google.maps.LatLng(center.lat(), center.lng()-spacing);
+            var c2 = new google.maps.LatLng(center.lat(), center.lng());
+            var c3 = new google.maps.LatLng(center.lat(), center.lng()+spacing);
+
+            start_pin.setPosition(c1);
+            pivot_pin.setPosition(c2);
+            end_pin.setPosition(c3);
+         };
 
          var play_controls = gui.addFolder('play controls');
          play_controls.add(hyperlapse, 'play');
@@ -158,6 +194,7 @@
          play_controls.add(hyperlapse, 'prev');
          play_controls.open();
 
+         gui.add(hyperlapse, 'drop_pins');
          gui.add(hyperlapse, 'generate');
       }
 
@@ -166,7 +203,7 @@
 </head> 
 <body> 
    <div id="pano" ></div>
-   <div id="map" style="width: 400px; height: 200px"></div>
-   <div id="text"></div>
+   <div id="map" style="width: 600px; height: 300px; float: left; padding: 10px;"></div>
+   <div id="text" style="width: 600px; height: 300px; float: left; padding: 10px;"></div>
 </body> 
 </html>
