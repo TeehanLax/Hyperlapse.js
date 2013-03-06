@@ -49,7 +49,7 @@ var Hyperlapse = function(container, map, params) {
       _zoom = _params.zoom || 1,
       _lat = 0, _lon = 0,
       _position_x = 0, _position_y = 0,
-      _is_playing = false,
+      _is_playing = false, _is_loading = false,
       _point_index = 0, 
       _origin_heading = 0, _origin_pitch = 0,
       _forward = true,
@@ -57,14 +57,15 @@ var Hyperlapse = function(container, map, params) {
       _canvas, _context,
       _camera, _scene, _renderer, _mesh,
       _loader,
+      _image = _params.image || null,
       _ctime = Date.now(),
       _ptime = 0, _dtime = 0,
-      _points = [], _headings = [], _pitchs = [], _mats = [], _elevations = [];
+      _points = [], _headings = [], _pitchs = [], _images = [], _elevations = [];
 
    var handleRoute = function (e) { if (self.onRoute) self.onRoute(e); };
    var handleError = function (e) { if (self.onError) self.onError(e); };
    var handleLoadProgress = function (e) { if (self.onLoadProgress) self.onLoadProgress(e); };
-   var handleLoadComplete = function (e) { if (self.onLoadComplete) self.onLoadComplete(e); };
+   var handleLoadComplete = function (e) { _is_loading = false; if (self.onLoadComplete) self.onLoadComplete(e); };
    var handleFrame = function (e) { if (self.onFrame) self.onFrame(e); };
    var handlePlay = function (e) { if (self.onPlay) self.onPlay(e); };
    var handlePause = function (e) { if (self.onPause) self.onPause(e); };
@@ -109,11 +110,10 @@ var Hyperlapse = function(container, map, params) {
       canvas.setAttribute('width',this.canvas.width);
       canvas.setAttribute('height',this.canvas.height);
       context.drawImage(this.canvas, 0, 0);
-      var mat = new THREE.Texture( canvas );
 
+      _images.push( canvas );
       _headings.push(this.rotation);
       _pitchs.push(this.pitch);
-      _mats.push(mat);
       _elevations.push(_points[_point_index]);
 
       if(++_point_index != _points.length) {
@@ -151,15 +151,6 @@ var Hyperlapse = function(container, map, params) {
    };
 
    var addPoint = function(point) {
-      // _streetview_service.getPanoramaByLocation(point, 100, function (data, status) {
-      //    console.log(data);
-      //    if (status === google.maps.StreetViewStatus.OK) {
-      //      // ok
-      //    } else {
-      //      // no street view
-      //    }
-      // });
-
       _points.push(point);
    }
 
@@ -232,8 +223,9 @@ var Hyperlapse = function(container, map, params) {
    }; 
 
    var drawMaterial = function() {
-      _mesh.material.map = _mats[_point_index]; 
+      _mesh.material.map.image = _images[_point_index];
       _mesh.material.map.needsUpdate = true;
+
       _origin_heading = _headings[_point_index];
       _origin_pitch = _pitchs[_point_index];
       _lookat_heading = google.maps.geometry.spherical.computeHeading(_points[_point_index], self.lookat);
@@ -281,14 +273,17 @@ var Hyperlapse = function(container, map, params) {
    this.elevation_offset = _params.elevation_offset || 0;
    this.tilt = _params.tilt || 0;
    this.useElevation = true;
+   this.position = {x:0, y:0};
 
    this.enableLookat = function() { _lookat_enabled = true; };
    this.disableLookat = function() { _lookat_enabled = false };
    this.isPlaying = function() { return _is_playing; };
+   this.isLoading = function() { return _is_loading; };
    this.length = function() { return _points.length; };
    this.setPitch = function(v) { _position_y = v; };
    this.setDistanceBetweenPoint = function(v) { _distance_between_points = v; };
    this.setMaxPoints = function(v) { _max_points = v; };
+   this.fov = function() { return _fov; };
 
    // TODO: make this the standard setter
    this.setLookat = function(point) {
@@ -312,15 +307,24 @@ var Hyperlapse = function(container, map, params) {
    };
 
    this.reset = function() {
+      for(var i=0; i<_images.length; i++) {
+         _images[i] = null;
+      } 
+
       _points.remove(0,-1);
       _headings.remove(0,-1);
       _pitchs.remove(0,-1);
-      _mats.remove(0,-1);
+      _images.remove(0,-1);
       _elevations.remove(0,-1);
+
+      self.elevation_offset = 0;
+      self.tilt = 0;
 
       _lat = 0;
       _lon = 0;
 
+      self.position.x = 0;
+      self.position.y = 0;
       _position_x = 0;
       _position_y = 0;
 
@@ -329,6 +333,7 @@ var Hyperlapse = function(container, map, params) {
       _origin_pitch = 0;
 
       _forward = true;
+      _is_loading = false;
    };  
 
    this.generate = function( params ) {
@@ -367,7 +372,10 @@ var Hyperlapse = function(container, map, params) {
    };  
 
    this.load = function() {
-      _loader.load( _points[_point_index] );
+      if(!_is_loading) {
+         _is_loading = true;
+         _loader.load( _points[_point_index] );
+      }
    };
 
    this.animate = function() {
@@ -383,11 +391,15 @@ var Hyperlapse = function(container, map, params) {
       self.render();
    };
 
+   this.getCameraPosition = function() {
+      return {lat: _lat, lon: _lon};
+   }
+
    this.render = function() {
       var t = _point_index/(self.length()-1);
 
-      var o_heading = (_lookat_enabled) ? _lookat_heading - _origin_heading.toDeg() : 0;
-      var o_pitch = _position_y;
+      var o_heading = (_lookat_enabled) ? _lookat_heading - _origin_heading.toDeg() : self.position.x;
+      var o_pitch = (_lookat_enabled) ? _position_y : self.position.y;
 
       var olon = _lon, olat = _lat;
       _lon = _lon + ( o_heading - olon );
@@ -402,13 +414,13 @@ var Hyperlapse = function(container, map, params) {
       _camera.target.z = 500 * Math.sin( phi ) * Math.sin( theta );
       _camera.lookAt( _camera.target );
       _camera.rotation.z -= self.tilt;
-      _mesh.rotation.z = _origin_pitch.toRad();
+      if(_lookat_enabled) _mesh.rotation.z = _origin_pitch.toRad();
       
       _renderer.render( _scene, _camera );
    };
 
    this.play = function() {
-      _is_playing = true;
+      if(!_is_loading) _is_playing = true;
    };
 
    this.pause = function() {
