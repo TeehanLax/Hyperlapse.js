@@ -6,7 +6,7 @@
 
    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false" type="text/javascript"></script> 
    <script src="js/dat.gui.min.js"></script>
-   <script src="js/GSVPano.js"></script>
+   <script src="../../GSVPano.js/src/GSVPano.js"></script>
    <script src="js/Three.js"></script>
    <script src="js/RequestAnimationFrame.js"></script>
    <script src="../src/Hyperlapse.js"></script>
@@ -18,6 +18,7 @@
       var map, directions_renderer, directions_service, streetview_service, geocoder;
       var start_pin, end_pin, pivot_pin, camera_pin;
       var _elevation = 0;
+      var _route_markers = [];
 
       function show(msg) {
          document.getElementById("text").innerHTML = msg;
@@ -176,6 +177,22 @@
          hyperlapse.onRoute = function(e) {
             directions_renderer.setDirections(e.response);
             show( "Number of Points: "+ hyperlapse.length() );
+
+            var marker;
+            while(_route_markers.length > 0) {
+               marker = _route_markers.pop();
+               marker.setMap(null);
+            }
+
+            for(var i=0; i<e.points.length; i++) {
+               _route_markers.push( new google.maps.Marker({
+                  position: e.points[i],
+                  draggable: false,
+                  icon: "dot_marker.png",
+                  map: map
+                  })
+               );
+            }
          };
 
          hyperlapse.onLoadProgress = function(e) {

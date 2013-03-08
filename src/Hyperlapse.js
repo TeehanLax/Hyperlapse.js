@@ -56,7 +56,7 @@ var Hyperlapse = function(container, map, params) {
       _lookat_heading = 0, _lookat_elevation = 0, _lookat_enabled = true,
       _canvas, _context,
       _camera, _scene, _renderer, _mesh,
-      _loader,
+      _loader, _cancel_load = false,
       _image = _params.image || null,
       _ctime = Date.now(),
       _ptime = 0, _dtime = 0,
@@ -119,10 +119,16 @@ var Hyperlapse = function(container, map, params) {
       if(++_point_index != _points.length) {
          handleLoadProgress({position:_point_index});
 
-         _loader.load( _points[_point_index] );
+         if(!_cancel_load) {
+            _loader.load( _points[_point_index] );
+         } else {
+            _cancel_load = false;
+            _is_loading = false;
+         }
       } else {
          handleLoadComplete({});
       
+         _is_loading = false;
          _point_index = 0;
 
          getElevation(_elevations, function(results){
@@ -174,7 +180,7 @@ var Hyperlapse = function(container, map, params) {
          var a, b;
 
          for(i=0; i<path.length; i++) {
-            if(i+1 < path.length-1) {
+            if(i+1 < path.length) {
 
                a = path[i];
                b = path[i+1];
@@ -375,8 +381,12 @@ var Hyperlapse = function(container, map, params) {
       if(!_is_loading) {
          _is_loading = true;
          _loader.load( _points[_point_index] );
-      }
+      } 
    };
+
+   this.cancelLoad = function() {
+      if(_is_loading) _cancel_load = true;
+   }
 
    this.animate = function() {
       var ptime = _ctime;
