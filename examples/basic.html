@@ -174,9 +174,13 @@
             });
          };
 
+         hyperlapse.onError = function(e) {
+            show( "ERROR: "+ e.message );
+         };
+
          hyperlapse.onRouteProgress = function(e) {
             _route_markers.push( new google.maps.Marker({
-               position: e.point,
+               position: e.point.location,
                draggable: false,
                icon: "dot_marker.png",
                map: map
@@ -195,10 +199,6 @@
             show( "Loading: "+ (e.position+1) +" of "+ hyperlapse.length() );
          };
 
-         hyperlapse.onError = function(e) {
-            show( "ERROR: "+ e.message );
-         };
-
          hyperlapse.onLoadComplete = function(e) {
             show( "" +
                "Start: " + start_pin.getPosition().toString() + 
@@ -213,7 +213,7 @@
                "<br>End: " + end_pin.getPosition().toString() + 
                "<br>Lookat: " + pivot_pin.getPosition().toString() + 
                "<br>Position: "+ (e.position+1) +" of "+ hyperlapse.length() );
-            camera_pin.setPosition(e.point);
+            camera_pin.setPosition(e.point.location);
          };
 
          pano.addEventListener( 'mousedown', function(e){
