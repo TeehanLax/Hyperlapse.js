@@ -60,12 +60,13 @@ var Hyperlapse = function(container, map, params) {
       _image = _params.image || null,
       _ctime = Date.now(),
       _ptime = 0, _dtime = 0,
-      _points = [], _headings = [], _pitchs = [], _images = [], _elevations = [];
+       _prev_pano_id = null,
 
-   var handleRoute = function (e) { if (self.onRoute) self.onRoute(e); };
+      // TODO: replace these with single array
+      _points = [], _headings = [], _pitchs = [], _images = [], _elevations = [], _ids = [];
+
+   
    var handleError = function (e) { if (self.onError) self.onError(e); };
-   var handleLoadProgress = function (e) { if (self.onLoadProgress) self.onLoadProgress(e); };
-   var handleLoadComplete = function (e) { _is_loading = false; if (self.onLoadComplete) self.onLoadComplete(e); };
    var handleFrame = function (e) { if (self.onFrame) self.onFrame(e); };
    var handlePlay = function (e) { if (self.onPlay) self.onPlay(e); };
    var handlePause = function (e) { if (self.onPause) self.onPause(e); };
@@ -89,15 +90,18 @@ var Hyperlapse = function(container, map, params) {
       console.log(e);
    }
 
-   _renderer = new THREE.WebGLRenderer();
+   _renderer = new THREE.WebGLRenderer({ preserveDrawingBuffer: true });
    _renderer.autoClearColor = false;
    _renderer.setSize( _w, _h );
 
-   _mesh = new THREE.Mesh( new THREE.SphereGeometry( 250, 30, 20 ), new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( 'blank.jpg' ) } ) );
+   _mesh = new THREE.Mesh( new THREE.SphereGeometry( 500, 60, 40 ), new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( 'blank.jpg' ) } ) );
    _mesh.doubleSided = true;
    _scene.add( _mesh );
    
    _container.appendChild( _renderer.domElement );
+
+
+   /* Loading functions */
 
    _loader = new GSVPANO.PanoLoader( {zoom: _zoom} );
    _loader.onError = function(message) {
@@ -112,35 +116,81 @@ var Hyperlapse = function(container, map, params) {
       context.drawImage(this.canvas, 0, 0);
 
       _images.push( canvas );
-      _headings.push(this.rotation);
-      _pitchs.push(this.pitch);
-      _elevations.push(_points[_point_index]);
-
+      
       if(++_point_index != _points.length) {
          handleLoadProgress({position:_point_index});
 
          if(!_cancel_load) {
-            _loader.load( _points[_point_index] );
+            _loader.composePanorama(_ids[_point_index]);
          } else {
             _cancel_load = false;
             _is_loading = false;
          }
       } else {
          handleLoadComplete({});
-      
-         _is_loading = false;
-         _point_index = 0;
-
-         getElevation(_elevations, function(results){
-            _elevations = results;
-
-            self.animate();  
-         });
       }
    };
 
+   var handleLoadProgress = function (e) { if (self.onLoadProgress) self.onLoadProgress(e); };
+   var handleLoadComplete = function (e) { 
+      _is_loading = false;
+      _point_index = 0;
 
-   /* private */
+      getElevation(_elevations, function(results){
+         _elevations = results;
+
+         self.animate();  
+      });
+
+      if (self.onLoadComplete) self.onLoadComplete(e); 
+   };
+
+   
+   /* Route functions */
+
+   var handleRouteProgress = function (e) { if (self.onRouteProgress) self.onRouteProgress(e); };
+   var handleRouteComplete = function (e) { if (self.onRouteComplete) self.onRouteComplete(e); };
+
+   var parsePoints = function(response) {
+
+      _loader.load( _points[_point_index], function() {
+         _ids[_point_index] = _loader.id;
+         _headings[_point_index] = _loader.rotation;
+         _pitchs[_point_index] = _loader.pitch;
+         _elevations[_point_index] = _points[_point_index];
+
+         if(_loader.id != _prev_pano_id) {
+            _prev_pano_id = _loader.id;
+
+            handleRouteProgress({point: _loader.location});
+
+            if(_point_index == _points.length-1) {
+               handleRouteComplete({response: response, points: _points});
+            } else {
+               _point_index++;
+               parsePoints(response);
+            }
+         } else {
+
+            _points.splice(_point_index, 1);
+            _headings.splice(_point_index, 1);
+            _pitchs.splice(_point_index, 1);
+            _images.splice(_point_index, 1);
+            _elevations.splice(_point_index, 1);
+            _ids.splice(_point_index, 1);
+
+            if(_point_index == _points.length) {
+               handleRouteComplete({response: response, points: _points});
+            } else {
+               parsePoints(response);
+            }
+
+         }
+         
+      } );
+   }
+
+   
 
    var getElevation = function(locations, callback) {
       var positionalRequest = {
@@ -162,7 +212,7 @@ var Hyperlapse = function(container, map, params) {
 
    var handleDirectionsRoute = function(response) {
       if(!_is_playing) {
-         self.reset();
+         
          var route = response.routes[0];
          var path = route.overview_path;
          var legs = route.legs;
@@ -220,7 +270,7 @@ var Hyperlapse = function(container, map, params) {
             }
          }
 
-         handleRoute({response: response, points: _points});
+         parsePoints(response);
 
       } else {
          self.pause();
@@ -276,7 +326,7 @@ var Hyperlapse = function(container, map, params) {
    this.end = _params.end || null;
    this.lookat = _params.lookat || null;
    this.millis = _params.millis || 50;
-   this.elevation_offset = _params.elevation_offset || 0;
+   this.elevation_offset = _params.elevation || 0;
    this.tilt = _params.tilt || 0;
    this.useElevation = true;
    this.position = {x:0, y:0};
@@ -290,6 +340,7 @@ var Hyperlapse = function(container, map, params) {
    this.setDistanceBetweenPoint = function(v) { _distance_between_points = v; };
    this.setMaxPoints = function(v) { _max_points = v; };
    this.fov = function() { return _fov; };
+   this.webgl = function() { return _renderer; }
 
    // TODO: make this the standard setter
    this.setLookat = function(point) {
@@ -322,6 +373,7 @@ var Hyperlapse = function(container, map, params) {
       _pitchs.remove(0,-1);
       _images.remove(0,-1);
       _elevations.remove(0,-1);
+      _ids.remove(0,-1);
 
       self.elevation_offset = 0;
       self.tilt = 0;
@@ -380,7 +432,8 @@ var Hyperlapse = function(container, map, params) {
    this.load = function() {
       if(!_is_loading) {
          _is_loading = true;
-         _loader.load( _points[_point_index] );
+         _point_index = 0;
+         _loader.composePanorama(_ids[_point_index]);
       } 
    };
 

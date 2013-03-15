@@ -141,9 +141,9 @@
             millis: 50,
             width: window.innerWidth,
             height: window.innerHeight,
-            zoom: 2,
-            distance_between_points: 5,
-            max_points: 100,
+            zoom: 3,
+            distance_between_points: 100,
+            max_points: 80,
             elevation: _elevation
          });
          
@@ -174,21 +174,25 @@
             });
          };
 
-         hyperlapse.onRouteProgress = function(e) {
-            _route_markers.push( new google.maps.Marker({
-               position: e.point,
-               draggable: false,
-               icon: "dot_marker.png",
-               map: map
-               })
-            );
-         };
-
-         hyperlapse.onRouteComplete = function(e) {
+         hyperlapse.onRoute = function(e) {
             directions_renderer.setDirections(e.response);
             show( "Number of Points: "+ hyperlapse.length() );
 
-      
+            var marker;
+            while(_route_markers.length > 0) {
+               marker = _route_markers.pop();
+               marker.setMap(null);
+            }
+
+            for(var i=0; i<e.points.length; i++) {
+               _route_markers.push( new google.maps.Marker({
+                  position: e.points[i],
+                  draggable: false,
+                  icon: "dot_marker.png",
+                  map: map
+                  })
+               );
+            }
          };
 
          hyperlapse.onLoadProgress = function(e) {
@@ -262,20 +266,12 @@
             screen_width: window.innerWidth,
             screen_height: window.innerHeight,
             generate:function(){
-               show( "Generating route..." );
-
-               directions_renderer.setDirections({routes: []});
-
-               var marker;
-               while(_route_markers.length > 0) {
-                  marker = _route_markers.pop();
-                  marker.setMap(null);
-               }
-
                hyperlapse.reset();
                hyperlapse.generate();
             },
             save:function() {
+               //window.open( hyperlapse.webgl().domElement.toDataURL( 'image/png' ), 'screenshot' );
+
                var dataURL = hyperlapse.webgl().domElement.toDataURL("image/png");
                dataURL = dataURL.replace("image/png", "image/octet-stream");
                document.location.href = dataURL;
@@ -351,7 +347,7 @@
          }, false);
 
 
-         o.generate();
+         hyperlapse.generate();
       }
 
       window.onload = init;
