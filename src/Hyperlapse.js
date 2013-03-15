@@ -332,6 +332,7 @@ var Hyperlapse = function(container, map, params) {
    this.tilt = _params.tilt || 0;
    this.useElevation = true;
    this.position = {x:0, y:0};
+   this.offset = {x:0, y:0, z:0};
 
    this.enableLookat = function() { _lookat_enabled = true; };
    this.disableLookat = function() { _lookat_enabled = false };
@@ -455,8 +456,12 @@ var Hyperlapse = function(container, map, params) {
    this.render = function() {
       var t = _point_index/(self.length()-1);
 
-      var o_heading = (_lookat_enabled) ? _lookat_heading - _origin_heading.toDeg() : self.position.x;
-      var o_pitch = (_lookat_enabled) ? _position_y : self.position.y;
+      var o_x = self.position.x + (self.offset.x * t);
+      var o_y = self.position.y + (self.offset.y * t);
+      var o_z = self.tilt + (self.offset.z.toRad() * t);
+
+      var o_heading = _lookat_heading - _origin_heading.toDeg() + o_x;
+      var o_pitch = _position_y + o_y;
 
       var olon = _lon, olat = _lat;
       _lon = _lon + ( o_heading - olon );
@@ -470,8 +475,9 @@ var Hyperlapse = function(container, map, params) {
       _camera.target.y = 500 * Math.cos( phi );
       _camera.target.z = 500 * Math.sin( phi ) * Math.sin( theta );
       _camera.lookAt( _camera.target );
-      _camera.rotation.z -= self.tilt;
-      if(_lookat_enabled) _mesh.rotation.z = _origin_pitch.toRad();
+      _camera.rotation.z -= o_z;
+
+      _mesh.rotation.z = _origin_pitch.toRad();
       
       _renderer.render( _scene, _camera );
    };
