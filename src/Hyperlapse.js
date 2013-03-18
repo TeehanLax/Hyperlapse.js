@@ -65,7 +65,7 @@ var Hyperlapse = function(container, map, params) {
       _point_index = 0, 
       _origin_heading = 0, _origin_pitch = 0,
       _forward = true,
-      _lookat_heading = 0, _lookat_elevation = 0, _lookat_enabled = true,
+      _lookat_heading = 0, _lookat_elevation = 0,
       _canvas, _context,
       _camera, _scene, _renderer, _mesh,
       _loader, _cancel_load = false,
@@ -273,7 +273,7 @@ var Hyperlapse = function(container, map, params) {
                _raw_points.push(path[i]);
             }
          }
-
+         
          parsePoints(response);
 
       } else {
@@ -333,9 +333,8 @@ var Hyperlapse = function(container, map, params) {
    this.useElevation = true;
    this.position = {x:0, y:0};
    this.offset = {x:0, y:0, z:0};
+   this.use_lookat = true;
 
-   this.enableLookat = function() { _lookat_enabled = true; };
-   this.disableLookat = function() { _lookat_enabled = false };
    this.isPlaying = function() { return _is_playing; };
    this.isLoading = function() { return _is_loading; };
    this.length = function() { return _h_points.length; };
@@ -378,6 +377,9 @@ var Hyperlapse = function(container, map, params) {
 
       self.position.x = 0;
       self.position.y = 0;
+      self.offset.x = 0;
+      self.offset.y = 0;
+      self.offset.z = 0;
       _position_x = 0;
       _position_y = 0;
 
@@ -391,45 +393,51 @@ var Hyperlapse = function(container, map, params) {
 
    this.generate = function( params ) {
 
-      var params = params || {};
-      _distance_between_points = params.distance_between_points || _distance_between_points;
-      _max_points = params.max_points || _max_points;
-
-      if(params.route) {
-         handleDirectionsRoute(params.route);
-      } else {
- 
-         if(!self.start==null || !self.end==null) {
-            console.log("no start or end point");
-            return;
-         } 
-
-         var route = { label:'Hyperlapse',
-            request:{
-               origin: self.start, 
-               destination: self.end, 
-               travelMode: google.maps.DirectionsTravelMode.DRIVING},
-            rendering:{draggable:false}
-         };
-
-         _directions_service.route(route.request, function(response, status) {
-            if (status == google.maps.DirectionsStatus.OK) {   
-               handleDirectionsRoute(response);
-            } else {
-               console.log(status);
-            }
-         });
+      if(!_is_loading) {
+         _is_loading = true;
+         self.reset();
          
+         var params = params || {};
+         _distance_between_points = params.distance_between_points || _distance_between_points;
+         _max_points = params.max_points || _max_points;
+
+         if(params.route) {
+            handleDirectionsRoute(params.route);
+         } else {
+    
+            if(!self.start==null || !self.end==null) {
+               console.log("no start or end point");
+               return;
+            } 
+
+            var route = { label:'Hyperlapse',
+               request:{
+                  origin: self.start, 
+                  destination: self.end, 
+                  travelMode: google.maps.DirectionsTravelMode.DRIVING},
+               rendering:{draggable:false}
+            };
+
+            _directions_service.route(route.request, function(response, status) {
+               if (status == google.maps.DirectionsStatus.OK) {   
+                  handleDirectionsRoute(response);
+               } else {
+                  console.log(status);
+               }
+            });
+            
+         }
+
       }
       
    };  
 
    this.load = function() {
-      if(!_is_loading) {
-         _is_loading = true;
+      //if(!_is_loading) {
+      //   _is_loading = true;
          _point_index = 0;
          _loader.composePanorama(_h_points[_point_index].pano_id);
-      } 
+      //} 
    };
 
    this.cancelLoad = function() {
@@ -454,32 +462,34 @@ var Hyperlapse = function(container, map, params) {
    }
 
    this.render = function() {
-      var t = _point_index/(self.length()-1);
+      if(!_is_loading && self.length()>0) {
+         var t = _point_index/(self.length());
 
-      var o_x = self.position.x + (self.offset.x * t);
-      var o_y = self.position.y + (self.offset.y * t);
-      var o_z = self.tilt + (self.offset.z.toRad() * t);
+         var o_x = self.position.x + (self.offset.x * t);
+         var o_y = self.position.y + (self.offset.y * t);
+         var o_z = self.tilt + (self.offset.z.toRad() * t);
 
-      var o_heading = _lookat_heading - _origin_heading.toDeg() + o_x;
-      var o_pitch = _position_y + o_y;
+         var o_heading = (self.use_lookat) ? _lookat_heading - _origin_heading.toDeg() + o_x : o_x;
+         var o_pitch = _position_y + o_y;
 
-      var olon = _lon, olat = _lat;
-      _lon = _lon + ( o_heading - olon );
-      _lat = _lat + ( o_pitch - olat );
+         var olon = _lon, olat = _lat;
+         _lon = _lon + ( o_heading - olon );
+         _lat = _lat + ( o_pitch - olat );
 
-      _lat = Math.max( - 85, Math.min( 85, _lat ) );
-      var phi = ( 90 - _lat ).toRad();
-      var theta = _lon.toRad();
+         _lat = Math.max( - 85, Math.min( 85, _lat ) );
+         var phi = ( 90 - _lat ).toRad();
+         var theta = _lon.toRad();
 
-      _camera.target.x = 500 * Math.sin( phi ) * Math.cos( theta );
-      _camera.target.y = 500 * Math.cos( phi );
-      _camera.target.z = 500 * Math.sin( phi ) * Math.sin( theta );
-      _camera.lookAt( _camera.target );
-      _camera.rotation.z -= o_z;
+         _camera.target.x = 500 * Math.sin( phi ) * Math.cos( theta );
+         _camera.target.y = 500 * Math.cos( phi );
+         _camera.target.z = 500 * Math.sin( phi ) * Math.sin( theta );
+         _camera.lookAt( _camera.target );
+         _camera.rotation.z -= o_z;
 
-      _mesh.rotation.z = _origin_pitch.toRad();
-      
-      _renderer.render( _scene, _camera );
+         _mesh.rotation.z = _origin_pitch.toRad();
+         
+         _renderer.render( _scene, _camera );
+      }
    };
 
    this.play = function() {

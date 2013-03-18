@@ -237,6 +237,9 @@
                var dy = ( e.clientY - onPointerDownPointerY ) * f;
                hyperlapse.position.x += dx; // reversed dragging direction (thanks @mrdoob!)
                hyperlapse.position.y += dy;
+
+               o.position_x = hyperlapse.position.x;
+               o.position_y = hyperlapse.position.y;
             }
 
          }, false );
@@ -261,7 +264,9 @@
             offset_x:0,
             offset_y:0,
             offset_z:0,
-            lookat:true,
+            position_x:0,
+            position_y:0,
+            use_lookat:true,
             screen_width: window.innerWidth,
             screen_height: window.innerHeight,
             generate:function(){
@@ -275,7 +280,7 @@
                   marker.setMap(null);
                }
 
-               hyperlapse.reset();
+               //hyperlapse.reset();
                hyperlapse.generate();
             },
             save:function() {
@@ -315,11 +320,6 @@
             changeHash();
          });
 
-         var tilt_control = parameters.add(o, 'tilt', -Math.PI/2, Math.PI/2);
-         tilt_control.onChange(function(value) {
-            hyperlapse.tilt = value;
-         });
-
          var millis_control = parameters.add(o, 'millis', 10, 250);
          millis_control.onChange(function(value) {
             hyperlapse.millis = value;
@@ -330,7 +330,7 @@
             hyperlapse.offset.x = value;
          });
 
-         var offset_y_control = parameters.add(o, 'offset_y', -360, 360);
+         var offset_y_control = parameters.add(o, 'offset_y', -180, 180);
          offset_y_control.onChange(function(value) {
             hyperlapse.offset.y = value;
          });
@@ -339,7 +339,28 @@
          offset_z_control.onChange(function(value) {
             hyperlapse.offset.z = value;
          });
-         play_controls.open();
+
+         var position_x_control = parameters.add(o, 'position_x', -360, 360).listen();
+         position_x_control.onChange(function(value) {
+            hyperlapse.position.x = value;
+         });
+
+         var position_y_control = parameters.add(o, 'position_y', -180, 180).listen();
+         position_y_control.onChange(function(value) {
+            hyperlapse.position.y = value;
+         });
+
+         var tilt_control = parameters.add(o, 'tilt', -Math.PI/2, Math.PI/2);
+         tilt_control.onChange(function(value) {
+            hyperlapse.tilt = value;
+         });
+
+         var lookat_control = parameters.add(o, 'use_lookat')
+         lookat_control.onChange(function(value) {
+            hyperlapse.use_lookat = value;
+         });
+
+         parameters.open();
          
 
          var play_controls = gui.addFolder('play controls');
