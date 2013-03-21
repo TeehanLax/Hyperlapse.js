@@ -60,6 +60,9 @@
          map = new google.maps.Map(document.getElementById("map"), mapOpt);
          geocoder = new google.maps.Geocoder();
 
+         var overlay = new google.maps.StreetViewCoverageLayer();
+         overlay.setMap(map);
+
          directions_service = new google.maps.DirectionsService();
          directions_renderer = new google.maps.DirectionsRenderer({draggable:false, markerOptions:{visible: false}});
          directions_renderer.setMap(map);
@@ -191,8 +194,7 @@
          hyperlapse.onRouteComplete = function(e) {
             directions_renderer.setDirections(e.response);
             show( "Number of Points: "+ hyperlapse.length() );
-
-      
+            hyperlapse.load();
          };
 
          hyperlapse.onLoadProgress = function(e) {
@@ -280,13 +282,16 @@
                   marker.setMap(null);
                }
 
-               //hyperlapse.reset();
                hyperlapse.generate();
             },
             save:function() {
                var dataURL = hyperlapse.webgl().domElement.toDataURL("image/png");
                dataURL = dataURL.replace("image/png", "image/octet-stream");
                document.location.href = dataURL;
+            },
+            open:function() {
+               var dataURL = hyperlapse.webgl().domElement.toDataURL("image/png");
+               window.open(dataURL, "img");
             }
          };
 
@@ -295,6 +300,7 @@
          scn.add(o, 'screen_width', window.innerHeight).listen();
          scn.add(o, 'screen_height', window.innerHeight).listen();
          scn.add(o, 'save');
+         scn.add(o, 'open');
 
          var parameters = gui.addFolder('parameters');
 
@@ -350,7 +356,7 @@
             hyperlapse.position.y = value;
          });
 
-         var tilt_control = parameters.add(o, 'tilt', -Math.PI/2, Math.PI/2);
+         var tilt_control = parameters.add(o, 'tilt', -Math.PI, Math.PI);
          tilt_control.onChange(function(value) {
             hyperlapse.tilt = value;
          });
@@ -381,6 +387,26 @@
             o.screen_height = window.innerHeight;
          }, false);
 
+         var show_ui = true;
+         document.addEventListener( 'keydown', onKeyDown, false );
+         function onKeyDown ( event ) {
+
+            switch( event.keyCode ) {
+               case 72: /* H */
+                  show_ui = !show_ui;
+                  document.getElementById("controls").style.opacity = (show_ui)?1:0;
+                  break;
+
+               case 190: /* > */
+                  hyperlapse.next();
+                  break;
+
+               case 188: /* < */
+                  hyperlapse.prev();
+                  break;
+            }
+
+         };
 
          o.generate();
       }

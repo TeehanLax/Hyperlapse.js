@@ -47,6 +47,8 @@ var HyperlapsePoint = function(location, pano_id, heading, pitch, elevation, ima
 
 var Hyperlapse = function(container, map, params) {
 
+   "use strict";
+
    var self = this,
       _listeners = [],
       _container = container,
@@ -297,6 +299,8 @@ var Hyperlapse = function(container, map, params) {
 
       if(self.useElevation) _position_y = (dif<0) ? -angle : angle;
 
+      self.render();
+
       handleFrame({
          position:_point_index, 
          point: _h_points[_point_index]
@@ -335,6 +339,9 @@ var Hyperlapse = function(container, map, params) {
    this.offset = {x:0, y:0, z:0};
    this.use_lookat = true;
 
+   this.use_rotation_comp = false;
+   this.rotation_comp = 0;
+
    this.isPlaying = function() { return _is_playing; };
    this.isLoading = function() { return _is_loading; };
    this.length = function() { return _h_points.length; };
@@ -343,6 +350,10 @@ var Hyperlapse = function(container, map, params) {
    this.setMaxPoints = function(v) { _max_points = v; };
    this.fov = function() { return _fov; };
    this.webgl = function() { return _renderer; }
+
+   this.getCurrentPano = function() {
+      return _h_points[_point_index].image;
+   }
 
    // TODO: make this the standard setter
    this.setLookat = function(point) {
@@ -433,11 +444,8 @@ var Hyperlapse = function(container, map, params) {
    };  
 
    this.load = function() {
-      //if(!_is_loading) {
-      //   _is_loading = true;
-         _point_index = 0;
-         _loader.composePanorama(_h_points[_point_index].pano_id);
-      //} 
+      _point_index = 0;
+      _loader.composePanorama(_h_points[_point_index].pano_id);
    };
 
    this.cancelLoad = function() {
@@ -454,7 +462,7 @@ var Hyperlapse = function(container, map, params) {
       }
 
       requestAnimationFrame( self.animate );
-      self.render();
+      //self.render();
    };
 
    this.getCameraPosition = function() {
@@ -484,8 +492,9 @@ var Hyperlapse = function(container, map, params) {
          _camera.target.y = 500 * Math.cos( phi );
          _camera.target.z = 500 * Math.sin( phi ) * Math.sin( theta );
          _camera.lookAt( _camera.target );
-         _camera.rotation.z -= o_z;
+         //_camera.rotation.z -= o_z;
 
+         if(self.use_rotation_comp) _camera.rotation.z -= self.rotation_comp.toRad();
          _mesh.rotation.z = _origin_pitch.toRad();
          
          _renderer.render( _scene, _camera );
