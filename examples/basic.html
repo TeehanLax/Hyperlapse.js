@@ -134,7 +134,8 @@
 
          var pano = document.getElementById('pano');
          var is_moving = false;
-         var onPointerDownPointerX=0, onPointerDownPointerY=0, onPointerDownLon, onPointerDownLat;
+         var px, py;
+         var onPointerDownPointerX=0, onPointerDownPointerY=0;
 
          var hyperlapse = new Hyperlapse(pano, map, {
             start: start_point, 
@@ -226,19 +227,20 @@
             onPointerDownPointerX = e.clientX;
             onPointerDownPointerY = e.clientY;
 
-            onPointerDownLon = hyperlapse.getCameraPosition().lon;
-            onPointerDownLat = hyperlapse.getCameraPosition().lat;
+            px = hyperlapse.position.x;
+            py = hyperlapse.position.y;
+
          }, false );
 
          pano.addEventListener( 'mousemove', function(e){
             e.preventDefault();
-            var f = hyperlapse.fov() / 20000;
+            var f = hyperlapse.fov() / 500;
 
             if ( is_moving ) {
                var dx = ( onPointerDownPointerX - e.clientX ) * f;
                var dy = ( e.clientY - onPointerDownPointerY ) * f;
-               hyperlapse.position.x += dx; // reversed dragging direction (thanks @mrdoob!)
-               hyperlapse.position.y += dy;
+               hyperlapse.position.x = px + dx; // reversed dragging direction (thanks @mrdoob!)
+               hyperlapse.position.y = py + dy;
 
                o.position_x = hyperlapse.position.x;
                o.position_y = hyperlapse.position.y;
@@ -282,7 +284,19 @@
                   marker.setMap(null);
                }
 
-               hyperlapse.generate();
+               request = {
+                  origin: start_point, 
+                  destination: end_point, 
+                  travelMode: google.maps.DirectionsTravelMode.DRIVING
+               };
+
+               directions_service.route(request, function(response, status) {
+                  if (status == google.maps.DirectionsStatus.OK) {   
+                     hyperlapse.generate({route: response});
+                  } else {
+                     console.log(status);
+                  }
+               });
             },
             save:function() {
                var dataURL = hyperlapse.webgl().domElement.toDataURL("image/png");

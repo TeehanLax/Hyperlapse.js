@@ -9,11 +9,11 @@
 
 Number.prototype.toRad = function() {
    return this * Math.PI / 180;
-}
+};
 
 Number.prototype.toDeg = function() {
    return this * 180 / Math.PI;
-}
+};
 
 // Array Remove - By John Resig (MIT Licensed)
 Array.prototype.remove = function(from, to) {
@@ -43,7 +43,7 @@ var HyperlapsePoint = function(location, pano_id, heading, pitch, elevation, ima
    this.elevation = elevation || 0;
    this.image = image || null;
 
-}
+};
 
 var Hyperlapse = function(container, map, params) {
 
@@ -202,7 +202,7 @@ var Hyperlapse = function(container, map, params) {
          }
          
       } );
-   }
+   };
 
    var getElevation = function(locations, callback) {
       var positionalRequest = { locations: locations };
@@ -299,7 +299,7 @@ var Hyperlapse = function(container, map, params) {
 
       if(self.useElevation) _position_y = (dif<0) ? -angle : angle;
 
-      self.render();
+      //self.render();
 
       handleFrame({
          position:_point_index, 
@@ -353,7 +353,7 @@ var Hyperlapse = function(container, map, params) {
 
    this.getCurrentPano = function() {
       return _h_points[_point_index].image;
-   }
+   };
 
    // TODO: make this the standard setter
    this.setLookat = function(point) {
@@ -450,7 +450,7 @@ var Hyperlapse = function(container, map, params) {
 
    this.cancelLoad = function() {
       if(_is_loading) _cancel_load = true;
-   }
+   };
 
    this.animate = function() {
       var ptime = _ctime;
@@ -462,12 +462,12 @@ var Hyperlapse = function(container, map, params) {
       }
 
       requestAnimationFrame( self.animate );
-      //self.render();
+      self.render();
    };
 
    this.getCameraPosition = function() {
       return {lat: _lat, lon: _lon};
-   }
+   };
 
    this.render = function() {
       if(!_is_loading && self.length()>0) {
@@ -492,7 +492,7 @@ var Hyperlapse = function(container, map, params) {
          _camera.target.y = 500 * Math.cos( phi );
          _camera.target.z = 500 * Math.sin( phi ) * Math.sin( theta );
          _camera.lookAt( _camera.target );
-         //_camera.rotation.z -= o_z;
+         _camera.rotation.z -= o_z;
 
          if(self.use_rotation_comp) _camera.rotation.z -= self.rotation_comp.toRad();
          _mesh.rotation.z = _origin_pitch.toRad();
@@ -526,4 +526,4 @@ var Hyperlapse = function(container, map, params) {
          drawMaterial();
       } 
    };
-}
+};
