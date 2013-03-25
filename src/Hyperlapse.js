@@ -1,11 +1,13 @@
-/*
-	Hyperlapse - Teehan+Lax Labs 2013 - Peter Nitsch
-
-	Dependancies:
-		Three.js
-		https://github.com/pnitsch/GSVPano.js
-		maps.googleapis.com/maps/api/js?v=3.exp
-*/
+/**
+ * Hyperlapse.js / Teehan+Lax Labs
+ *
+ * Dependancies:
+ * https://github.com/mrdoob/three.js
+ * https://github.com/pnitsch/GSVPano.js
+ * maps.googleapis.com/maps/api/js?v=3.exp
+ *
+ * @author Peter Nitsch
+ */
 
 Number.prototype.toRad = function() {
 	return this * Math.PI / 180;
@@ -32,6 +34,17 @@ var pointOnLine = function(t, a, b) {
 	return new google.maps.LatLng(x.toDeg(), y.toDeg());
 };
 
+/**
+ * External point
+ *
+ * @param {LatLng} location 
+ * @param {String} pano_id 
+ * @param {number} heading 
+ * @param {number} pitch 
+ * @param {number} elevation 
+ * @param {Image} image 
+ */
+
 var HyperlapsePoint = function(location, pano_id, heading, pitch, elevation, image ) {
 
 	var self = this;
@@ -45,14 +58,19 @@ var HyperlapsePoint = function(location, pano_id, heading, pitch, elevation, ima
 
 };
 
-var Hyperlapse = function(container, map, params) {
+/**
+ * @constructor
+ * @param {Node} container 
+ * @param {opts?} params 
+ */
+
+var Hyperlapse = function(container, params) {
 
 	"use strict";
 
 	var self = this,
 		_listeners = [],
 		_container = container,
-		_map = map,
 		_params = params || {},
 		_w = _params.width || 800,
 		_h = _params.height || 400,
@@ -111,8 +129,6 @@ var Hyperlapse = function(container, map, params) {
 
 	_container.appendChild( _renderer.domElement );
 
-	/* Loading functions */
-
 	_loader = new GSVPANO.PanoLoader( {zoom: _zoom} );
 	_loader.onError = function(message) {
 		handleError({message:message});
@@ -146,7 +162,7 @@ var Hyperlapse = function(container, map, params) {
 		_is_loading = false;
 		_point_index = 0;
 
-		self.animate();
+		animate();
 
 		if (self.onLoadComplete) self.onLoadComplete(e);
 	};
@@ -297,14 +313,59 @@ var Hyperlapse = function(container, map, params) {
 
 		if(self.useElevation) _position_y = (dif<0) ? -angle : angle;
 
-		//self.render();
-
 		handleFrame({
 			position:_point_index,
 			point: _h_points[_point_index]
 		});
 	};
 
+	var render = function() {
+		if(!_is_loading && self.length()>0) {
+			var t = _point_index/(self.length());
+
+			var o_x = self.position.x + (self.offset.x * t);
+			var o_y = self.position.y + (self.offset.y * t);
+			var o_z = self.tilt + (self.offset.z.toRad() * t);
+
+			var o_heading = (self.use_lookat) ? _lookat_heading - _origin_heading.toDeg() + o_x : o_x;
+			var o_pitch = _position_y + o_y;
+
+			var olon = _lon, olat = _lat;
+			_lon = _lon + ( o_heading - olon );
+			_lat = _lat + ( o_pitch - olat );
+
+			_lat = Math.max( - 85, Math.min( 85, _lat ) );
+			var phi = ( 90 - _lat ).toRad();
+			var theta = _lon.toRad();
+
+			_camera.target.x = 500 * Math.sin( phi ) * Math.cos( theta );
+			_camera.target.y = 500 * Math.cos( phi );
+			_camera.target.z = 500 * Math.sin( phi ) * Math.sin( theta );
+			_camera.lookAt( _camera.target );
+			_camera.rotation.z -= o_z;
+
+			if(self.use_rotation_comp) {
+				_camera.rotation.z -= self.rotation_comp.toRad();
+			}
+			_mesh.rotation.z = _origin_pitch.toRad();
+			_renderer.render( _scene, _camera );
+		}
+	};
+
+	var animate = function() {
+		var ptime = _ctime;
+		_ctime = Date.now();
+		_dtime += _ctime - ptime;
+		if(_dtime >= self.millis) {
+			if(_is_playing) loop();
+			_dtime = 0;
+		}
+
+		requestAnimationFrame( animate );
+		render();
+	};
+
+	// animates the playhead forward or backward depending on direction
 	var loop = function() {
 		drawMaterial();
 
@@ -320,6 +381,7 @@ var Hyperlapse = function(container, map, params) {
 			}
 		}
 	};
+
 
 	/* public */
 
@@ -346,11 +408,18 @@ var Hyperlapse = function(container, map, params) {
 	this.fov = function() { return _fov; };
 	this.webgl = function() { return _renderer; };
 
+	/**
+	 * 
+	 */
+
 	this.getCurrentPano = function() {
 		return _h_points[_point_index].image;
 	};
 
-	// TODO: make this the standard setter
+	/**
+	 * 
+	 */
+
 	this.setLookat = function(point) {
 		self.lookat = point;
 		var e = getElevation([self.lookat], function(results){
@@ -359,10 +428,18 @@ var Hyperlapse = function(container, map, params) {
 	};
 	this.setLookat(self.lookat);
 
+	/**
+	 * 
+	 */
+
 	this.setFOV = function(value) {
 		_fov = Math.floor(value);
 		_camera.projectionMatrix = THREE.Matrix4.makePerspective( _fov, _w/_h, 1, 1100 );
 	};
+
+	/**
+	 * 
+	 */
 
 	this.setSize = function(width, height) {
 		_w = width;
@@ -370,6 +447,10 @@ var Hyperlapse = function(container, map, params) {
 		_renderer.setSize( _w, _h );
 		_camera.projectionMatrix = THREE.Matrix4.makePerspective( _fov, _w/_h, 1, 1100 );
 	};
+
+	/**
+	 * 
+	 */
 
 	this.reset = function() {
 		_raw_points.remove(0,-1);
@@ -396,6 +477,10 @@ var Hyperlapse = function(container, map, params) {
 		_forward = true;
 		_is_loading = false;
 	};
+
+	/**
+	 * 
+	 */
 
 	this.generate = function( parameters ) {
 
@@ -437,72 +522,52 @@ var Hyperlapse = function(container, map, params) {
 
 	};
 
+	/**
+	 * 
+	 */
+
 	this.load = function() {
 		_point_index = 0;
 		_loader.composePanorama(_h_points[_point_index].pano_id);
 	};
 
+	/**
+	 * 
+	 */
+
 	this.cancelLoad = function() {
 		if(_is_loading) _cancel_load = true;
 	};
 
-	this.animate = function() {
-		var ptime = _ctime;
-		_ctime = Date.now();
-		_dtime += _ctime - ptime;
-		if(_dtime >= self.millis) {
-			if(_is_playing) loop();
-			_dtime = 0;
-		}
-
-		requestAnimationFrame( self.animate );
-		self.render();
-	};
+	/**
+	 * 
+	 */
 
 	this.getCameraPosition = function() {
 		return {lat: _lat, lon: _lon};
 	};
 
-	this.render = function() {
-		if(!_is_loading && self.length()>0) {
-			var t = _point_index/(self.length());
+	
 
-			var o_x = self.position.x + (self.offset.x * t);
-			var o_y = self.position.y + (self.offset.y * t);
-			var o_z = self.tilt + (self.offset.z.toRad() * t);
-
-			var o_heading = (self.use_lookat) ? _lookat_heading - _origin_heading.toDeg() + o_x : o_x;
-			var o_pitch = _position_y + o_y;
-
-			var olon = _lon, olat = _lat;
-			_lon = _lon + ( o_heading - olon );
-			_lat = _lat + ( o_pitch - olat );
-
-			_lat = Math.max( - 85, Math.min( 85, _lat ) );
-			var phi = ( 90 - _lat ).toRad();
-			var theta = _lon.toRad();
-
-			_camera.target.x = 500 * Math.sin( phi ) * Math.cos( theta );
-			_camera.target.y = 500 * Math.cos( phi );
-			_camera.target.z = 500 * Math.sin( phi ) * Math.sin( theta );
-			_camera.lookAt( _camera.target );
-			_camera.rotation.z -= o_z;
-
-			if(self.use_rotation_comp) {
-				_camera.rotation.z -= self.rotation_comp.toRad();
-			}
-			_mesh.rotation.z = _origin_pitch.toRad();
-			_renderer.render( _scene, _camera );
-		}
-	};
+	/**
+	 * Animate through all frames in sequence
+	 */
 
 	this.play = function() {
 		if(!_is_loading) _is_playing = true;
 	};
 
+	/**
+	 * Pause animation
+	 */
+
 	this.pause = function() {
 		_is_playing = false;
 	};
+
+	/**
+	 * Display next frame in sequence
+	 */
 
 	this.next = function() {
 		self.pause();
@@ -512,6 +577,10 @@ var Hyperlapse = function(container, map, params) {
 			drawMaterial();
 		}
 	};
+
+	/**
+	 * Display previous frame in sequence
+	 */
 
 	this.prev = function() {
 		self.pause();
