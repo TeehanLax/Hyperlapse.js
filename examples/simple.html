@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html> 
+<head> 
+   <title>Simple Hyperlapse.js Example</title> 
+
+   <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false" type="text/javascript"></script> 
+   <script src="../../GSVPano.js/src/GSVPano.js"></script>
+   <script src="js/Three.js"></script>
+   <script src="js/RequestAnimationFrame.js"></script>
+   <script src="../src/Hyperlapse.js"></script>
+   <script> 
+
+      function init() {
+
+         var hyperlapse = new Hyperlapse(document.getElementById('pano'), {
+            start: new google.maps.LatLng(37.816480000000006,-122.47825,37), 
+            end: new google.maps.LatLng(37.81195,-122.47773000000001),
+            lookat: new google.maps.LatLng(37.81409525128964,-122.4775045005249),
+            zoom: 1,
+            elevation: 50
+         });
+
+         hyperlapse.onError = function(e) {
+            console.log(e);
+         };
+
+         hyperlapse.onRouteComplete = function(e) {
+            hyperlapse.load();
+         };
+
+         hyperlapse.onLoadComplete = function(e) {
+            hyperlapse.play();
+         };
+
+         hyperlapse.generate();
+      }
+
+      window.onload = init;
+   </script> 
+</head> 
+<body> 
+   <div id="pano"></div>
+</body> 
+</html>

@@ -2,7 +2,7 @@
 <html> 
 <head> 
    <meta http-equiv="content-type" content="text/html; charset=UTF-8"/> 
-   <title>Basic</title> 
+   <title>Viewer Example</title> 
 
    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&sensor=false" type="text/javascript"></script> 
    <script src="js/dat.gui.min.js"></script>
@@ -168,11 +168,11 @@
 
             snapToRoad(c1, function(result1) {
                start_pin.setPosition(result1);
-               hyperlapse.start = result1;
+               start_point = result1;
 
                snapToRoad(c3, function(result3) {
                   end_pin.setPosition(result3);
-                  hyperlapse.end = result3;
+                  end_point = result3;
                   changeHash();
                });
             });
@@ -297,15 +297,6 @@
                      console.log(status);
                   }
                });
-            },
-            save:function() {
-               var dataURL = hyperlapse.webgl().domElement.toDataURL("image/png");
-               dataURL = dataURL.replace("image/png", "image/octet-stream");
-               document.location.href = dataURL;
-            },
-            open:function() {
-               var dataURL = hyperlapse.webgl().domElement.toDataURL("image/png");
-               window.open(dataURL, "img");
             }
          };
 
@@ -313,8 +304,6 @@
          var scn = gui.addFolder('screen');
          scn.add(o, 'screen_width', window.innerHeight).listen();
          scn.add(o, 'screen_height', window.innerHeight).listen();
-         scn.add(o, 'save');
-         scn.add(o, 'open');
 
          var parameters = gui.addFolder('parameters');
 

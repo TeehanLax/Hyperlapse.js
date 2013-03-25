@@ -456,7 +456,7 @@ var Hyperlapse = function(container, params) {
 		_raw_points.remove(0,-1);
 		_h_points.remove(0,-1);
 
-		self.elevation_offset = 0;
+		//self.elevation_offset = 0;
 		self.tilt = 0;
 
 		_lat = 0;
