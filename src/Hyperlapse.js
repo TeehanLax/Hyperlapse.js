@@ -75,8 +75,7 @@ var Hyperlapse = function(container, map, params) {
 		_ctime = Date.now(),
 		_ptime = 0, _dtime = 0,
 		_prev_pano_id = null,
-		_raw_points = [], _h_points = [],
-		_blank_bg =  _params.blank_bg || 'blank.jpg';
+		_raw_points = [], _h_points = [];
 
 	var handleError = function (e) { if (self.onError) self.onError(e); };
 	var handleFrame = function (e) { if (self.onFrame) self.onFrame(e); };
@@ -106,7 +105,7 @@ var Hyperlapse = function(container, map, params) {
 	_renderer.autoClearColor = false;
 	_renderer.setSize( _w, _h );
 
-	_mesh = new THREE.Mesh( new THREE.SphereGeometry( 500, 60, 40 ), new THREE.MeshBasicMaterial( { map: THREE.ImageUtils.loadTexture( _blank_bg ) } ) );
+	_mesh = new THREE.Mesh( new THREE.SphereGeometry( 500, 60, 40 ), new THREE.MeshBasicMaterial( { map: new THREE.Texture() } ) );
 	_mesh.doubleSided = true;
 	_scene.add( _mesh );
 
