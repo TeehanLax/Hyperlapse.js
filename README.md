@@ -2,7 +2,7 @@
 
 ### JavaScript hyper-lapse utility for Google Street View.
 
-![image](http://)
+![image](https://s3.amazonaws.com/tllabs.hyperlapse/hyperlapse.gif)
 
 [Simple example (CN Tower).](http://)
 
