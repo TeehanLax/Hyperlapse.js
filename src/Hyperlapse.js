@@ -436,7 +436,7 @@ var Hyperlapse = function(container, params) {
 
 	this.setFOV = function(value) {
 		_fov = Math.floor(value);
-		_camera.projectionMatrix = THREE.Matrix4.makePerspective( _fov, _w/_h, 1, 1100 );
+		_camera.projectionMatrix.makePerspective( _fov, _w/_h, 1, 1100 );
 	};
 
 	/**
@@ -447,7 +447,7 @@ var Hyperlapse = function(container, params) {
 		_w = width;
 		_h = height;
 		_renderer.setSize( _w, _h );
-		_camera.projectionMatrix = THREE.Matrix4.makePerspective( _fov, _w/_h, 1, 1100 );
+		_camera.projectionMatrix.makePerspective( _fov, _w/_h, 1, 1100 );
 	};
 
 	/**
