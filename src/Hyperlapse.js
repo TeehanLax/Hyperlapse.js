@@ -119,12 +119,14 @@ var Hyperlapse = function(container, params) {
 		console.log(e);
 	}
 
-	_renderer = new THREE.WebGLRenderer({ preserveDrawingBuffer: true });
+	_renderer = new THREE.WebGLRenderer();
 	_renderer.autoClearColor = false;
 	_renderer.setSize( _w, _h );
 
-	_mesh = new THREE.Mesh( new THREE.SphereGeometry( 500, 60, 40 ), new THREE.MeshBasicMaterial( { map: new THREE.Texture() } ) );
-	_mesh.doubleSided = true;
+	_mesh = new THREE.Mesh( 
+		new THREE.SphereGeometry( 500, 60, 40 ), 
+		new THREE.MeshBasicMaterial( { map: new THREE.Texture(), side: THREE.DoubleSide } ) 
+	);
 	_scene.add( _mesh );
 
 	_container.appendChild( _renderer.domElement );
