@@ -8,5 +8,6 @@ examples/tool.html
 examples/ransac.html
 examples/feat.html
 examples/videostab.html
+examples/js/videostab
 examples/js/ransac.js
 examples/js/sylvester.js
