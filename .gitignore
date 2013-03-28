@@ -7,6 +7,7 @@
 examples/tool.html
 examples/ransac.html
 examples/feat.html
+examples/vs.html
 examples/videostab.html
 examples/js/videostab
 examples/js/ransac.js

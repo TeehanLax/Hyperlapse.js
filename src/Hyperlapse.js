@@ -311,12 +311,13 @@ var Hyperlapse = function(container, params) {
 		_origin_pitch = _h_points[_point_index].pitch;
 		_lookat_heading = google.maps.geometry.spherical.computeHeading( _h_points[_point_index].location, self.lookat );
 
-		var e = _h_points[_point_index].elevation - self.elevation_offset;
-		var d = google.maps.geometry.spherical.computeDistanceBetween( _h_points[_point_index].location, self.lookat );
-		var dif = _lookat_elevation - e;
-		var angle = Math.atan( Math.abs(dif)/d ).toDeg();
-
-		if(self.useElevation) _position_y = (dif<0) ? -angle : angle;
+		if(self.useElevation) {
+			var e = _h_points[_point_index].elevation - self.elevation_offset;
+			var d = google.maps.geometry.spherical.computeDistanceBetween( _h_points[_point_index].location, self.lookat );
+			var dif = _lookat_elevation - e;
+			var angle = Math.atan( Math.abs(dif)/d ).toDeg();
+			_position_y = (dif<0) ? -angle : angle;
+		} 
 
 		handleFrame({
 			position:_point_index,
@@ -390,8 +391,6 @@ var Hyperlapse = function(container, params) {
 
 	/* public */
 
-	this.start = _params.start || null;
-	this.end = _params.end || null;
 	this.lookat = _params.lookat || null;
 	this.millis = _params.millis || 50;
 	this.elevation_offset = _params.elevation || 0;
@@ -501,27 +500,7 @@ var Hyperlapse = function(container, params) {
 			if(params.route) {
 				handleDirectionsRoute(params.route);
 			} else {
-				if(self.start===null || self.end===null) {
-					console.log("no start or end point");
-					return;
-				}
-
-				var route = { label:'Hyperlapse',
-					request:{
-						origin: self.start,
-						destination: self.end,
-						travelMode: google.maps.DirectionsTravelMode.DRIVING
-					},
-					rendering:{draggable:false}
-				};
-
-				_directions_service.route(route.request, function(response, status) {
-					if (status == google.maps.DirectionsStatus.OK) {
-						handleDirectionsRoute(response);
-					} else {
-						console.log(status);
-					}
-				});
+				console.log("No route provided.");
 			}
 
 		}
