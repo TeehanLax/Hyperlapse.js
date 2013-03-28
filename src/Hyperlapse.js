@@ -178,16 +178,27 @@ var Hyperlapse = function(container, params) {
 			elevations[i] = _h_points[i].location;
 		}
 
-		getElevation(elevations, function(results){
+		if(self.useElevation) {
+			getElevation(elevations, function(results){
+				for(i=0; i<_h_points.length; i++) {
+					_h_points[i].elevation = results[i].elevation;
+				}
+
+				self.setLookat(self.lookat, function(){
+					if (self.onRouteComplete) self.onRouteComplete(e);
+				});
+			});
+		} else {
 			for(i=0; i<_h_points.length; i++) {
-				_h_points[i].elevation = results[i].elevation;
+				_h_points[i].elevation = 0;
 			}
 
 			self.setLookat(self.lookat, function(){
 				if (self.onRouteComplete) self.onRouteComplete(e);
 			});
+		}
 
-		});
+		
 	};
 
 	var parsePoints = function(response) {
@@ -395,7 +406,7 @@ var Hyperlapse = function(container, params) {
 	this.millis = _params.millis || 50;
 	this.elevation_offset = _params.elevation || 0;
 	this.tilt = _params.tilt || 0;
-	this.useElevation = true;
+	this.useElevation = false;
 	this.position = {x:0, y:0};
 	this.offset = {x:0, y:0, z:0};
 	this.use_lookat = true;
@@ -427,10 +438,17 @@ var Hyperlapse = function(container, params) {
 
 	this.setLookat = function(point, callback) {
 		self.lookat = point;
-		var e = getElevation([self.lookat], function(results){
-			_lookat_elevation = results[0].elevation;
+
+		if(self.useElevation) {
+			var e = getElevation([self.lookat], function(results){
+				_lookat_elevation = results[0].elevation;
+				if(callback && callback.apply) callback();
+			});
+		} else {
+			_lookat_elevation = 0;
 			if(callback && callback.apply) callback();
-		});
+		}
+		
 	};
 
 	/**
