@@ -75,6 +75,7 @@ var Hyperlapse = function(container, params) {
 		_w = _params.width || 800,
 		_h = _params.height || 400,
 		_d = 20,
+		_use_elevation = _params.use_elevation || true,
 		_distance_between_points = _params.distance_between_points || 20,
 		_max_points = _params.max_points || 100,
 		_fov = _params.fov || 70,
@@ -178,7 +179,7 @@ var Hyperlapse = function(container, params) {
 			elevations[i] = _h_points[i].location;
 		}
 
-		if(self.useElevation) {
+		if(_use_elevation) {
 			getElevation(elevations, function(results){
 				for(i=0; i<_h_points.length; i++) {
 					_h_points[i].elevation = results[i].elevation;
@@ -322,7 +323,7 @@ var Hyperlapse = function(container, params) {
 		_origin_pitch = _h_points[_point_index].pitch;
 		_lookat_heading = google.maps.geometry.spherical.computeHeading( _h_points[_point_index].location, self.lookat );
 
-		if(self.useElevation) {
+		if(_use_elevation) {
 			var e = _h_points[_point_index].elevation - self.elevation_offset;
 			var d = google.maps.geometry.spherical.computeDistanceBetween( _h_points[_point_index].location, self.lookat );
 			var dif = _lookat_elevation - e;
@@ -406,7 +407,6 @@ var Hyperlapse = function(container, params) {
 	this.millis = _params.millis || 50;
 	this.elevation_offset = _params.elevation || 0;
 	this.tilt = _params.tilt || 0;
-	this.useElevation = false;
 	this.position = {x:0, y:0};
 	this.offset = {x:0, y:0, z:0};
 	this.use_lookat = true;
@@ -439,7 +439,7 @@ var Hyperlapse = function(container, params) {
 	this.setLookat = function(point, callback) {
 		self.lookat = point;
 
-		if(self.useElevation) {
+		if(_use_elevation) {
 			var e = getElevation([self.lookat], function(results){
 				_lookat_elevation = results[0].elevation;
 				if(callback && callback.apply) callback();
