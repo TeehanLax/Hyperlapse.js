@@ -101,7 +101,6 @@ var Hyperlapse = function(container, params) {
 	var handlePlay = function (e) { if (self.onPlay) self.onPlay(e); };
 	var handlePause = function (e) { if (self.onPause) self.onPause(e); };
 
-	var _directions_service = new google.maps.DirectionsService();
 	var _elevator = new google.maps.ElevationService();
 	var _streetview_service = new google.maps.StreetViewService();
 
@@ -181,10 +180,16 @@ var Hyperlapse = function(container, params) {
 
 		if(_use_elevation) {
 			getElevation(elevations, function(results){
-				for(i=0; i<_h_points.length; i++) {
-					_h_points[i].elevation = results[i].elevation;
+				if(results) {
+					for(i=0; i<_h_points.length; i++) {
+						_h_points[i].elevation = results[i].elevation;
+					}
+				} else {
+					for(i=0; i<_h_points.length; i++) {
+						_h_points[i].elevation = 0;
+					}
 				}
-
+				
 				self.setLookat(self.lookat, function(){
 					if (self.onRouteComplete) self.onRouteComplete(e);
 				});
@@ -242,6 +247,7 @@ var Hyperlapse = function(container, params) {
 			if (status == google.maps.ElevationStatus.OK) {
 				callback(results);
 			} else {
+				_use_elevation = false;
 				callback(null);
 			}
 		});
@@ -441,7 +447,12 @@ var Hyperlapse = function(container, params) {
 
 		if(_use_elevation) {
 			var e = getElevation([self.lookat], function(results){
-				_lookat_elevation = results[0].elevation;
+				if(results) {
+					_lookat_elevation = results[0].elevation;
+				} else {
+					_lookat_elevation = 0;
+				}
+				
 				if(callback && callback.apply) callback();
 			});
 		} else {
