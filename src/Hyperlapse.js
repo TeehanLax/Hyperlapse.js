@@ -75,8 +75,8 @@ var Hyperlapse = function(container, params) {
 		_w = _params.width || 800,
 		_h = _params.height || 400,
 		_d = 20,
-		_use_elevation = _params.use_elevation || true,
-		_distance_between_points = _params.distance_between_points || 20,
+		_use_elevation = _params.use_elevation || false,
+		_distance_between_points = _params.distance_between_points || 5,
 		_max_points = _params.max_points || 100,
 		_fov = _params.fov || 70,
 		_zoom = _params.zoom || 1,
@@ -151,14 +151,19 @@ var Hyperlapse = function(container, params) {
 			if(!_cancel_load) {
 				_loader.composePanorama( _h_points[_point_index].pano_id );
 			} else {
-				_cancel_load = false;
-				_is_loading = false;
+				handleLoadCanceled( {} );
 			}
 		} else {
 			handleLoadComplete( {} );
 		}
 	};
 
+	var handleLoadCanceled = function (e) {
+		_cancel_load = false;
+		_is_loading = false;
+
+		if (self.onLoadCanceled) self.onLoadCanceled(e);
+	};
 	var handleLoadProgress = function (e) { if (self.onLoadProgress) self.onLoadProgress(e); };
 	var handleLoadComplete = function (e) {
 		_is_loading = false;
@@ -223,7 +228,8 @@ var Hyperlapse = function(container, params) {
 					handleRouteComplete( {response: response, points: _h_points} );
 				} else {
 					_point_index++;
-					parsePoints(response);
+					if(!_cancel_load) parsePoints(response);
+					else handleLoadCanceled( {} );
 				}
 			} else {
 
@@ -232,7 +238,8 @@ var Hyperlapse = function(container, params) {
 				if(_point_index == _raw_points.length) {
 					handleRouteComplete( {response: response, points: _h_points} ); // FIX
 				} else {
-					parsePoints(response);
+					if(!_cancel_load) parsePoints(response);
+					else handleLoadCanceled( {} );
 				}
 
 			}
@@ -497,7 +504,7 @@ var Hyperlapse = function(container, params) {
 		_lon = 0;
 
 		self.position.x = 0;
-		self.position.y = 0;
+		//self.position.y = 0;
 		self.offset.x = 0;
 		self.offset.y = 0;
 		self.offset.z = 0;
@@ -509,7 +516,7 @@ var Hyperlapse = function(container, params) {
 		_origin_pitch = 0;
 
 		_forward = true;
-		_is_loading = false;
+		//_is_loading = false;
 	};
 
 	/**
@@ -549,8 +556,10 @@ var Hyperlapse = function(container, params) {
 	 * 
 	 */
 
-	this.cancelLoad = function() {
-		if(_is_loading) _cancel_load = true;
+	this.cancel = function() {
+		if(_is_loading) {
+			_cancel_load = true;
+		} 
 	};
 
 	/**
