@@ -35,7 +35,7 @@ var pointOnLine = function(t, a, b) {
 };
 
 /**
- * External point
+ * Value object for hyperlapse point
  *
  * @param {LatLng} location 
  * @param {String} pano_id 
@@ -45,16 +45,20 @@ var pointOnLine = function(t, a, b) {
  * @param {Image} image 
  */
 
-var HyperlapsePoint = function(location, pano_id, heading, pitch, elevation, image ) {
+var HyperlapsePoint = function(location, pano_id, params ) {
 
 	var self = this;
 
 	this.location = location;
 	this.pano_id = pano_id;
-	this.heading = heading || 0;
-	this.pitch = pitch || 0;
-	this.elevation = elevation || 0;
-	this.image = image || null;
+
+	var params = params || {};
+	this.heading = params.heading || 0;
+	this.pitch = params.pitch || 0;
+	this.elevation = params.elevation || 0;
+	this.image = params.image || null;
+	this.copyright = params.copyright || "© 2013 Google";
+	this.image_date = params.image_date || "";
 
 };
 
@@ -219,7 +223,14 @@ var Hyperlapse = function(container, params) {
 			if(_loader.id != _prev_pano_id) {
 				_prev_pano_id = _loader.id;
 
-				var hp = new HyperlapsePoint( _loader.location, _loader.id, _loader.rotation, _loader.pitch, _loader.elevation );
+				var hp = new HyperlapsePoint( _loader.location, _loader.id, {
+					heading:_loader.rotation, 
+					pitch: _loader.pitch, 
+					elevation: _loader.elevation,
+					copyright: _loader.copyright,
+					image_date: _loader.image_date
+				} );
+
 				_h_points.push( hp );
 
 				handleRouteProgress( {point: hp} );

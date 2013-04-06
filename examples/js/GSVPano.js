@@ -109,6 +109,7 @@ GSVPANO.PanoLoader = function (parameters) {
 				self.location = location;
 				self.rotation = rotation;
 				self.pitch = pitch;
+				self.image_date = result.imageDate;
 				self.id = _panoId;
 				callback();
 			} else {
