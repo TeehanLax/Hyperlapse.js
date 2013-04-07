@@ -4,7 +4,7 @@
 
 ![image](https://s3.amazonaws.com/tllabs.hyperlapse/hyperlapse.gif)
 
-This library was written to create dynamic hyper-lapse (time-lapse with movement) sequences using Google Street View. It is WebGL based that has dependances with [Three.js](https://github.com/mrdoob/three.js) (r57), a modified version of [GSVPano.js](https://github.com/pnitsch/GSVPano.js), and [Google Maps API v3](https://developers.google.com/maps/documentation/javascript/3.exp/reference).
+This library was written to create dynamic hyper-lapse (time-lapse with movement) sequences using Google Street View. 
 
 [Read what inspired this project.](http://)
 
@@ -51,37 +51,15 @@ directions_service.route(route.request, function(response, status) {
 	}
 });
 ```
+
+## Dependencies
+
+It is WebGL based that has dependances with [Three.js](https://github.com/mrdoob/three.js) (r57), a modified version of [GSVPano.js](https://github.com/pnitsch/GSVPano.js), and [Google Maps API v3](https://developers.google.com/maps/documentation/javascript/3.exp/reference).
   
-## Classes 
+## API Docs 
   
-This library contains two Classes. Explain them here
+API Documentation
   
-  
-### Hyperlapse
-description
-
-#### Constructor
-```js
-Hyperlapse(container, options)
-```
-
-#### Methods
-```js
-getCurrentPano()
-```
-##### Returns
-- something
-
-#### Params  
-  
-### HyperlapsePoint
-description
-
-#### Constructor
-
-#### Methods
-
-#### Params
 
 ## License
 
