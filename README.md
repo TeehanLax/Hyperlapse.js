@@ -35,13 +35,12 @@ hyperlapse.onLoadComplete = function(e) {
 // Google Maps stuff here...
 var directions_service = new google.maps.DirectionsService();
 
-var route = { label:'Hyperlapse',
+var route = {
 	request:{
 		origin: new google.maps.LatLng(37.816480000000006,-122.47825,37),
 		destination: new google.maps.LatLng(37.81195,-122.47773000000001),
 		travelMode: google.maps.DirectionsTravelMode.DRIVING
-	},
-	rendering:{draggable:false}
+	}
 };
 
 directions_service.route(route.request, function(response, status) {
@@ -63,15 +62,15 @@ description
 
 #### Constructor
 
-##### Methods
+#### Methods
 
-###### Params
+#### Params
 
 ## License
 
 The MIT License
 
-Copyright (c) 2012 Jaume Sanchez Elias
+Copyright (c) 2013 Teehan+Lax
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
