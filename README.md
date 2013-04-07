@@ -61,9 +61,16 @@ This library contains two Classes. Explain them here
 description
 
 #### Constructor
-######Hyperlapse(container:HTMLElement, options:{})
+```js
+Hyperlapse(container, options)
+```
 
 #### Methods
+```js
+getCurrentPano()
+```
+##### Returns
+- something
 
 #### Params  
   
