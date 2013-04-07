@@ -32,7 +32,7 @@ hyperlapse.onLoadComplete = function(e) {
 	hyperlapse.play();
 };
 
-// Google Maps stuff here...
+// Google Maps API stuff here...
 var directions_service = new google.maps.DirectionsService();
 
 var route = {
@@ -54,8 +54,18 @@ directions_service.route(route.request, function(response, status) {
   
 ## Classes 
   
-This library contains two Classes  
+This library contains two Classes. Explain them here
   
+  
+### Hyperlapse
+description
+
+#### Constructor
+######Hyperlapse(container:HTMLElement, options:{})
+
+#### Methods
+
+#### Params  
   
 ### HyperlapsePoint
 description
