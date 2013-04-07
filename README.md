@@ -14,43 +14,43 @@ This library was written to create dynamic hyper-lapse (time-lapse with movement
 
 ```js
 
-	var hyperlapse = new Hyperlapse(document.getElementById('pano'), {
-		lookat: new google.maps.LatLng(37.81409525128964,-122.4775045005249),
-		zoom: 1,
-		elevation: 50
-	});
+var hyperlapse = new Hyperlapse(document.getElementById('pano'), {
+	lookat: new google.maps.LatLng(37.81409525128964,-122.4775045005249),
+	zoom: 1,
+	elevation: 50
+});
 
-	hyperlapse.onError = function(e) {
-		console.log(e);
-	};
+hyperlapse.onError = function(e) {
+	console.log(e);
+};
 
-	hyperlapse.onRouteComplete = function(e) {
-		hyperlapse.load();
-	};
+hyperlapse.onRouteComplete = function(e) {
+	hyperlapse.load();
+};
 
-	hyperlapse.onLoadComplete = function(e) {
-		hyperlapse.play();
-	};
+hyperlapse.onLoadComplete = function(e) {
+	hyperlapse.play();
+};
 
-	// Google Maps stuff here...
-	var directions_service = new google.maps.DirectionsService();
+// Google Maps stuff here...
+var directions_service = new google.maps.DirectionsService();
 
-	var route = { label:'Hyperlapse',
-		request:{
-			origin: new google.maps.LatLng(37.816480000000006,-122.47825,37),
-			destination: new google.maps.LatLng(37.81195,-122.47773000000001),
-			travelMode: google.maps.DirectionsTravelMode.DRIVING
-		},
-		rendering:{draggable:false}
-	};
+var route = { label:'Hyperlapse',
+	request:{
+		origin: new google.maps.LatLng(37.816480000000006,-122.47825,37),
+		destination: new google.maps.LatLng(37.81195,-122.47773000000001),
+		travelMode: google.maps.DirectionsTravelMode.DRIVING
+	},
+	rendering:{draggable:false}
+};
 
-	directions_service.route(route.request, function(response, status) {
-		if (status == google.maps.DirectionsStatus.OK) {
-			hyperlapse.generate( {route:response} );
-		} else {
-			console.log(status);
-		}
-	});
+directions_service.route(route.request, function(response, status) {
+	if (status == google.maps.DirectionsStatus.OK) {
+		hyperlapse.generate( {route:response} );
+	} else {
+		console.log(status);
+	}
+});
 ```
   
 ## Classes 
