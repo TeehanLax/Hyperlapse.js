@@ -12,7 +12,7 @@ This library was written to create dynamic hyper-lapse (time-lapse with movement
 
 ## Example
 
-[Simple example](http://)
+[Simple example](http://tllabs.io/hyperlapse/examples/simple.html)
 
 ```js
 var hyperlapse = new Hyperlapse(document.getElementById('pano'), {
@@ -62,7 +62,7 @@ directions_service.route(route.request, function(response, status) {
   
 ## API Docs 
   
-[API Documentation](http://)
+[API Documentation](http://tllabs.io/hyperlapse/docs/Hyperlapse.html)
   
 
 ## License
