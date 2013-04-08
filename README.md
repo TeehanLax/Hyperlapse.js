@@ -13,7 +13,6 @@ This library was written to create dynamic hyper-lapse (time-lapse with movement
 [Simple example](http://)
 
 ```js
-
 var hyperlapse = new Hyperlapse(document.getElementById('pano'), {
 	lookat: new google.maps.LatLng(37.81409525128964,-122.4775045005249),
 	zoom: 1,
