@@ -6,6 +6,8 @@
 
 This library was written to create dynamic hyper-lapse (time-lapse with movement) sequences using Google Street View. 
 
+[See it action.](http://hyperlapse.tllabs.io)
+
 [Read about this project.](http://www.teehanlax.com/labs/hyperlapse/)
 
 [Video of what's possible.](http://)
