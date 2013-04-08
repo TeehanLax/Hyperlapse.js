@@ -1,10 +1,10 @@
 # **Hyperlapse.js**
 
-### JavaScript hyperlapse utility for Google Street View.
+### JavaScript hyper-lapse utility for Google Street View.
 
 ![image](https://s3.amazonaws.com/tllabs.hyperlapse/hyperlapse.gif)
 
-This library was written to create dynamic hyperlapse (timelapse with movement) sequences using Google Street View. 
+This library was written to create dynamic hyper-lapse (time-lapse with movement) sequences using Google Street View. 
 
 [Read about this project.](http://www.teehanlax.com/labs/hyperlapse/)
 
