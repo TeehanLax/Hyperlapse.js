@@ -10,7 +10,7 @@ This library was written to create dynamic hyper-lapse (time-lapse with movement
 
 [Read about this project.](http://www.teehanlax.com/labs/hyperlapse/)
 
-[Video of what's possible.](http://)
+[Video of what's possible.](https://vimeo.com/63653873)
 
 ## Example
 
