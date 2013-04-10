@@ -433,7 +433,9 @@ var Hyperlapse = function(container, params) {
 
 		_origin_heading = _h_points[_point_index].heading;
 		_origin_pitch = _h_points[_point_index].pitch;
-		_lookat_heading = google.maps.geometry.spherical.computeHeading( _h_points[_point_index].location, self.lookat );
+
+		if(self.use_lookat) 
+			_lookat_heading = google.maps.geometry.spherical.computeHeading( _h_points[_point_index].location, self.lookat );
 
 		if(_h_points[_point_index].elevation != -1 && _lookat_elevation != -1) {
 			var e = _h_points[_point_index].elevation - self.elevation_offset;
@@ -550,10 +552,10 @@ var Hyperlapse = function(container, params) {
 	this.offset = {x:0, y:0, z:0};
 
 	/**
-	 * @default true
+	 * @default false
 	 * @type {boolean}
 	 */
-	this.use_lookat = true;
+	this.use_lookat = _params.use_lookat || false;
 
 	/**
 	 * @default false
