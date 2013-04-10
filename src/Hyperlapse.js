@@ -636,13 +636,13 @@ var Hyperlapse = function(container, params) {
 				if(results) {
 					_lookat_elevation = results[0].elevation;
 				} else {
-					_lookat_elevation = 0;
+					//_lookat_elevation = 0;
 				}
 				
 				if(callback && callback.apply) callback();
 			});
 		} else {
-			_lookat_elevation = 0;
+			//_lookat_elevation = 0;
 			if(callback && callback.apply) callback();
 		}
 		

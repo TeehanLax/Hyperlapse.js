@@ -12,7 +12,8 @@
 		function init() {
 
 			var hyperlapse = new Hyperlapse(document.getElementById('pano'), {
-				zoom: 2,
+				lookat: new google.maps.LatLng(37.81409525128964,-122.4775045005249),
+				zoom: 1,
 				use_lookat: true,
 				elevation: 50
 			});
