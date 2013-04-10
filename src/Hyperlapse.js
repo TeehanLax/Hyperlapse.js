@@ -280,7 +280,7 @@ var Hyperlapse = function(container, params) {
 					}
 				} else {
 					for(i=0; i<_h_points.length; i++) {
-						_h_points[i].elevation = 0;
+						_h_points[i].elevation = -1;
 					}
 				}
 				
@@ -290,7 +290,7 @@ var Hyperlapse = function(container, params) {
 			});
 		} else {
 			for(i=0; i<_h_points.length; i++) {
-				_h_points[i].elevation = 0;
+				_h_points[i].elevation = -1;
 			}
 
 			self.setLookat(self.lookat, function(){
@@ -350,6 +350,9 @@ var Hyperlapse = function(container, params) {
 			if (status == google.maps.ElevationStatus.OK) {
 				callback(results);
 			} else {
+				if(status == google.maps.ElevationStatus.OVER_QUERY_LIMIT) {
+					console.log("Over elevation query limit.");
+				}
 				_use_elevation = false;
 				callback(null);
 			}
@@ -432,7 +435,7 @@ var Hyperlapse = function(container, params) {
 		_origin_pitch = _h_points[_point_index].pitch;
 		_lookat_heading = google.maps.geometry.spherical.computeHeading( _h_points[_point_index].location, self.lookat );
 
-		if(_use_elevation) {
+		if(_h_points[_point_index].elevation != -1 && _lookat_elevation != -1) {
 			var e = _h_points[_point_index].elevation - self.elevation_offset;
 			var d = google.maps.geometry.spherical.computeDistanceBetween( _h_points[_point_index].location, self.lookat );
 			var dif = _lookat_elevation - e;
@@ -630,13 +633,13 @@ var Hyperlapse = function(container, params) {
 				if(results) {
 					_lookat_elevation = results[0].elevation;
 				} else {
-					_lookat_elevation = 0;
+					_lookat_elevation = -1;
 				}
 				
 				if(callback && callback.apply) callback();
 			});
 		} else {
-			_lookat_elevation = 0;
+			_lookat_elevation = -1;
 			if(callback && callback.apply) callback();
 		}
 		
