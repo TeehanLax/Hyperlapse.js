@@ -284,7 +284,7 @@ var Hyperlapse = function(container, params) {
 					}
 				}
 				
-				self.setLookat(self.lookat, function(){
+				self.setLookat(self.lookat, true, function(){
 					if (self.onRouteComplete) self.onRouteComplete(e);
 				});
 			});
@@ -293,7 +293,7 @@ var Hyperlapse = function(container, params) {
 				_h_points[i].elevation = -1;
 			}
 
-			self.setLookat(self.lookat, function(){
+			self.setLookat(self.lookat, false, function(){
 				if (self.onRouteComplete) self.onRouteComplete(e);
 			});
 		}
@@ -437,7 +437,7 @@ var Hyperlapse = function(container, params) {
 		if(self.use_lookat) 
 			_lookat_heading = google.maps.geometry.spherical.computeHeading( _h_points[_point_index].location, self.lookat );
 
-		if(_h_points[_point_index].elevation != -1 && _lookat_elevation != -1) {
+		if(_h_points[_point_index].elevation != -1 ) {
 			var e = _h_points[_point_index].elevation - self.elevation_offset;
 			var d = google.maps.geometry.spherical.computeDistanceBetween( _h_points[_point_index].location, self.lookat );
 			var dif = _lookat_elevation - e;
@@ -625,23 +625,24 @@ var Hyperlapse = function(container, params) {
 
 	/**
 	 * @param {google.maps.LatLng} point
+	 * @param {boolean} call_service
 	 * @param {function} callback
 	 */
-	this.setLookat = function(point, callback) {
+	this.setLookat = function(point, call_service, callback) {
 		self.lookat = point;
 
-		if(_use_elevation) {
+		if(_use_elevation && call_service) {
 			var e = getElevation([self.lookat], function(results){
 				if(results) {
 					_lookat_elevation = results[0].elevation;
 				} else {
-					_lookat_elevation = -1;
+					_lookat_elevation = 0;
 				}
 				
 				if(callback && callback.apply) callback();
 			});
 		} else {
-			_lookat_elevation = -1;
+			_lookat_elevation = 0;
 			if(callback && callback.apply) callback();
 		}
 		
