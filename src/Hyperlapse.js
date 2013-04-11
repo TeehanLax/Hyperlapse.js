@@ -635,14 +635,11 @@ var Hyperlapse = function(container, params) {
 			var e = getElevation([self.lookat], function(results){
 				if(results) {
 					_lookat_elevation = results[0].elevation;
-				} else {
-					//_lookat_elevation = 0;
-				}
+				} 
 				
 				if(callback && callback.apply) callback();
 			});
 		} else {
-			//_lookat_elevation = 0;
 			if(callback && callback.apply) callback();
 		}
 		
@@ -674,14 +671,12 @@ var Hyperlapse = function(container, params) {
 		_raw_points.remove(0,-1);
 		_h_points.remove(0,-1);
 
-		//self.elevation_offset = 0;
 		self.tilt = 0;
 
 		_lat = 0;
 		_lon = 0;
 
 		self.position.x = 0;
-		//self.position.y = 0;
 		self.offset.x = 0;
 		self.offset.y = 0;
 		self.offset.z = 0;
@@ -693,7 +688,6 @@ var Hyperlapse = function(container, params) {
 		_origin_pitch = 0;
 
 		_forward = true;
-		//_is_loading = false;
 	};
 
 	/**
