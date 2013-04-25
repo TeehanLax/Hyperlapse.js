@@ -140,7 +140,8 @@ var Hyperlapse = function(container, params) {
 		_ctime = Date.now(),
 		_ptime = 0, _dtime = 0,
 		_prev_pano_id = null,
-		_raw_points = [], _h_points = [];
+		_raw_points = [], _h_points = [],
+		_raf;
 
 	/**
 	 * @event Hyperlapse#onError
@@ -247,8 +248,6 @@ var Hyperlapse = function(container, params) {
 	var handleLoadComplete = function (e) {
 		_is_loading = false;
 		_point_index = 0;
-
-		animate();
 
 		if (self.onLoadComplete) self.onLoadComplete(e);
 	};
@@ -493,7 +492,7 @@ var Hyperlapse = function(container, params) {
 			_dtime = 0;
 		}
 
-		requestAnimationFrame( animate );
+		_raf = requestAnimationFrame( animate );
 		render();
 	};
 
@@ -747,6 +746,7 @@ var Hyperlapse = function(container, params) {
 	this.play = function() {
 		if(!_is_loading) {
 			_is_playing = true;
+        	animate();
 			handlePlay({});
 		} 
 	};
@@ -757,6 +757,7 @@ var Hyperlapse = function(container, params) {
 	 */
 	this.pause = function() {
 		_is_playing = false;
+   		cancelAnimationFrame(_raf);
 		handlePause({});
 	};
 
