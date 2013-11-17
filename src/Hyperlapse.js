@@ -272,12 +272,12 @@ var Hyperlapse = function(container, params) {
  	 * @param {Array<HyperlapsePoint>} e.points
 	 */
 	var handleRouteComplete = function (e) {
-		var elevations = [];
-		for(var i=0; i<_h_points.length; i++) {
-			elevations[i] = _h_points[i].location;
-		}
-
 		if(_use_elevation) {
+			// below is not necessary if _use_elevation is false
+			var elevations = [];
+			for(var i=0; i<_h_points.length; i++) {
+				elevations[i] = _h_points[i].location;
+			}
 			getElevation(elevations, function(results){
 				if(results) {
 					for(i=0; i<_h_points.length; i++) {
