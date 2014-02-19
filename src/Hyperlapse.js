@@ -127,6 +127,7 @@ var Hyperlapse = function(container, params) {
 		_max_points = _params.max_points || 100,
 		_fov = _params.fov || 70,
 		_zoom = _params.zoom || 1,
+		_loop = ("undefined" !==  typeof _params.loop) ? _params.loop : true,
 		_lat = 0, _lon = 0,
 		_position_x = 0, _position_y = 0,
 		_is_playing = false, _is_loading = false,
@@ -510,6 +511,9 @@ var Hyperlapse = function(container, params) {
 			if(++_point_index == _h_points.length) {
 				_point_index = _h_points.length-1;
 				_forward = !_forward;
+				if (!_loop) {
+					self.pause();
+				}
 			}
 		} else {
 			if(--_point_index == -1) {
